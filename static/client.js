@@ -2,6 +2,10 @@ window = document.defaultView
 Navigator = window.navigator
 Geolocation = Navigator.geolocation
 
+let previous_latitude = null
+let previous_longitude = null
+let distance = 0
+
 button = document.getElementById("record")
 
 button.addEventListener("click", recordActivity)
@@ -19,43 +23,6 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return R * c; // km
 }
 
-function sendCurrentPosition(GeolocationPosition) {
-  const coords = GeolocationPosition.coords;
-  const coordsJSON = (coords.toJSON())
-  current_latitude = coordsJSON["latitude"]
-  current_longitude = coordsJSON["longitude"]
-  const data = JSON.stringify(coordsJSON)
-  metric_screen = document.getElementById("screen")
-  metric_screen.innerText = Number(metric_screen.innerText) + 1
-  console.log(data)
-  fetch("/workout", {
-    "method": "POST",
-    "body": data
-  })
-}
-
-
-function styleMetricScreen(metric_screen) {
-  metric_screen.style.backgroundColor = "orange"
-  metric_screen.style.height = "200px"
-  metric_screen.style.width = "400px"
-}
-
-function assignMetricScreenId(metric_screen) {
-  id = document.createAttribute("id")
-  id.value = "screen"
-  metric_screen.setAttributeNode(id)
-}
-
-
-function createMetricScreen(distance) {
-  metric_screen = document.createElement("div")
-  metric_screen.innerText = distance
-  styleMetricScreen(metric_screen)
-  assignMetricScreenId(metric_screen)
-  document.body.appendChild(metric_screen)
-}
-
 
 function createStopButton() {
   stop = document.getElementById("record")
@@ -69,15 +36,36 @@ function createStartButton() {
   start.innerText = "START"
 }
 
+function sendCurrentPosition(GeolocationPosition) {
+  const coords = GeolocationPosition.coords;
+  const coordsJSON = (coords.toJSON())
+  current_latitude = coordsJSON["latitude"]
+  current_longitude = coordsJSON["longitude"]
+  distance_screen = document.getElementsByClassName("distance")
+  if (previous_latitude == null && previous_longitude == null) {
+    previous_latitude = current_latitude
+    previous_longitude = current_longitude
+  }
+  distance_travelled = haversineDistance(previous_latitude, previous_longitude, current_latitude, current_longitude)
+  distance += distance_travelled
+  distance_screen.innerText = distance
+}
+
+function timeWorkout() {
+  time = document.getElementsByClassName("time")[0]
+  time.innerText = Number(time.innerText) + 1
+}
+
 function startActivity() {
-  var distance = 0
   createStopButton()
-  createMetricScreen(distance)
+  time_id = setInterval(timeWorkout, 1000)
+
   id = Geolocation.watchPosition(sendCurrentPosition)
 }
 
 function stopActivity() {
   createStartButton()
+  clearInterval(time_id)
   Geolocation.clearWatch(id)
 }
 
