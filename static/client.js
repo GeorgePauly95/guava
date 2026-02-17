@@ -1,10 +1,10 @@
-window = document.defaultView
-Navigator = window.navigator
-Geolocation = Navigator.geolocation
+// use let, var, const for data that is not changing
+// any variable that changes value should not be in the global scope 
+
+var Geolocation = window.navigator.geolocation
 
 let previous_latitude = null
 let previous_longitude = null
-let distance = 0
 
 button = document.getElementById("record")
 
@@ -36,30 +36,45 @@ function createStartButton() {
   start.innerText = "START"
 }
 
+// sendCurrentPosition function is doing too many things, and the name is wrong
+// Break it into two parts:
+// 1. get coordinate data
+// 2. calculate distance (including updating previous location)
+// 3. DOM update 
+
 function sendCurrentPosition(GeolocationPosition) {
   const coords = GeolocationPosition.coords;
   const coordsJSON = (coords.toJSON())
+  console.log(JSON.stringify(coordsJSON))
   current_latitude = coordsJSON["latitude"]
   current_longitude = coordsJSON["longitude"]
-  distance_screen = document.getElementsByClassName("distance")
   if (previous_latitude == null && previous_longitude == null) {
     previous_latitude = current_latitude
     previous_longitude = current_longitude
   }
-  distance_travelled = haversineDistance(previous_latitude, previous_longitude, current_latitude, current_longitude)
-  distance += distance_travelled
-  distance_screen.innerText = distance
+
+  // DONE: use getElementById since there's only one instance of speed, distance, and time.
+  // read values from the DOM once, assign variables these values and use the variables. instead of reading DOM multiple times.
+  distance = document.getElementById("distance")
+  distance_travelled = haversineDistance(previous_latitude, previous_longitude, current_latitude, current_longitude) * 1000
+  previous_latitude = current_latitude
+  previous_longitude = current_longitude
+  distance.innerText = Number(distance.innerText) + distance_travelled
+  speed = document.getElementById("speed")
+  time = document.getElementById("time")
+  if (time.innerText != 0) {
+    speed.innerText = distance.innerText / time.innerText
+  }
 }
 
 function timeWorkout() {
-  time = document.getElementsByClassName("time")[0]
+  time = document.getElementById("time")
   time.innerText = Number(time.innerText) + 1
 }
 
 function startActivity() {
   createStopButton()
   time_id = setInterval(timeWorkout, 1000)
-
   id = Geolocation.watchPosition(sendCurrentPosition)
 }
 
