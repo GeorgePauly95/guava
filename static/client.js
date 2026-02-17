@@ -8,11 +8,10 @@
 // DO LATER: (not clear how this reduces work) read values from the DOM once, assign variables these values and use the variables. instead of reading DOM multiple times.
 
 var Geolocation = window.navigator.geolocation
-
 const button = document.getElementById("record")
 
 
-button.addEventListener("click", recordActivity)
+button.addEventListener("click", trackWorkout())
 
 
 function haversineDistance(lat1, lon1, lat2, lon2) {
@@ -42,38 +41,6 @@ function createStartButton() {
   start.innerText = "START"
 }
 
-
-function getCurrentPosition(GeolocationPosition) {
-  let coords = GeolocationPosition.coords;
-  let coordsJSON = (coords.toJSON())
-  console.log(JSON.stringify(coordsJSON))
-  let current_latitude = coordsJSON["latitude"]
-  let current_longitude = coordsJSON["longitude"]
-  return { "current_latitude": current_latitude, "current_longitude": current_longitude }
-}
-
-
-let previous_latitude = null
-let previous_longitude = null
-
-function calculateDistanceMoved(current_position) {
-  let current_latitude = current_position["current_latitude"]
-  let current_longitude = current_position["current_longitude"]
-
-  if (previous_latitude == null && previous_longitude == null) {
-    previous_latitude = current_latitude
-    previous_longitude = current_longitude
-  }
-
-  distance_moved = haversineDistance(previous_latitude, previous_longitude, current_latitude, current_longitude) * 1000
-
-  previous_latitude = current_latitude
-  previous_longitude = current_longitude
-
-  return distance_moved
-}
-
-
 function updateMetricsScreen(distance_moved) {
   const distance = document.getElementById("distance")
   const speed = document.getElementById("speed")
@@ -85,46 +52,81 @@ function updateMetricsScreen(distance_moved) {
 }
 
 
-function trackPosition(GeolocationPosition) {
-  let current_position = getCurrentPosition(GeolocationPosition)
-  let distance_moved = calculateDistanceMoved(current_position)
-  updateMetricsScreen(distance_moved)
-}
+function trackWorkout() {
 
+  let time_id
+  let id
+  let previous_latitude = null
+  let previous_longitude = null
 
-function timeWorkout() {
-  const time = document.getElementById("time")
-  time.innerText = Number(time.innerText) + 1
-}
-
-
-let time_id
-let id
-
-function startActivity() {
-  createStopButton()
-  time_id = setInterval(timeWorkout, 1000)
-  console.log("time_id in startActivity", time_id)
-  id = Geolocation.watchPosition(trackPosition)
-}
-
-
-function stopActivity() {
-  createStartButton()
-  console.log("time_id in stopActivity", time_id)
-  clearInterval(time_id)
-  Geolocation.clearWatch(id)
-}
-
-
-function recordActivity() {
-  const button = document.getElementById("record")
-
-  if (button.innerText == "START") {
-    startActivity()
+  function getCurrentPosition(GeolocationPosition) {
+    let coords = GeolocationPosition.coords;
+    let coordsJSON = (coords.toJSON())
+    console.log(JSON.stringify(coordsJSON))
+    let current_latitude = coordsJSON["latitude"]
+    let current_longitude = coordsJSON["longitude"]
+    return { "current_latitude": current_latitude, "current_longitude": current_longitude }
   }
 
-  else {
-    stopActivity()
+
+  function calculateDistanceMoved(current_position) {
+    let current_latitude = current_position["current_latitude"]
+    let current_longitude = current_position["current_longitude"]
+
+    if (previous_latitude == null && previous_longitude == null) {
+      previous_latitude = current_latitude
+      previous_longitude = current_longitude
+    }
+
+    distance_moved = haversineDistance(previous_latitude, previous_longitude, current_latitude, current_longitude) * 1000
+
+    previous_latitude = current_latitude
+    previous_longitude = current_longitude
+
+    return distance_moved
   }
+
+
+  function trackPosition(GeolocationPosition) {
+    let current_position = getCurrentPosition(GeolocationPosition)
+    let distance_moved = calculateDistanceMoved(current_position)
+    updateMetricsScreen(distance_moved)
+  }
+
+
+  function timeWorkout() {
+    const time = document.getElementById("time")
+    time.innerText = Number(time.innerText) + 1
+  }
+
+
+  function startWorkout() {
+    createStopButton()
+    time_id = setInterval(timeWorkout, 1000)
+    console.log("time_id in startActivity", time_id)
+    id = Geolocation.watchPosition(trackPosition)
+  }
+
+
+  function stopWorkout() {
+    createStartButton()
+    console.log("time_id in stopActivity", time_id)
+    clearInterval(time_id)
+    Geolocation.clearWatch(id)
+  }
+
+
+  function recordWorkout() {
+    const button = document.getElementById("record")
+
+    if (button.innerText == "START") {
+      startWorkout()
+    }
+
+    else {
+      stopWorkout()
+    }
+  }
+
+  return recordWorkout
 }
