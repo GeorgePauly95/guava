@@ -1,21 +1,15 @@
 var Geolocation = window.navigator.geolocation
 
-const button = document.getElementById("record")
+const start_record = document.getElementById("start")
+start_record.addEventListener("click", recordWorkout)
 
-button.addEventListener("click", recordWorkout)
 
 function recordWorkout() {
   const trackPosition = positionTrackerFactory()
   const { startWorkout, stopWorkout } = workoutTrackerFactory(trackPosition)
-  const button = document.getElementById("record")
-
-  if (button.innerText == "START") {
-    startWorkout()
-  }
-
-  else {
-    stopWorkout()
-  }
+  const stop_record = document.getElementById("stop")
+  stop_record.addEventListener("click", stopWorkout)
+  startWorkout()
 }
 
 function positionTrackerFactory() {
@@ -93,6 +87,9 @@ function workoutTrackerFactory(trackPosition) {
     console.log("time_id in stopActivity", time_id)
     clearInterval(time_id)
     Geolocation.clearWatch(id)
+    const stop = document.getElementById("stop")
+    stop.removeEventListener("click", stopWorkout)
+
   }
 
   return { startWorkout, stopWorkout }
@@ -106,16 +103,18 @@ function timeWorkout() {
 
 
 function createStopButton() {
-  const stop = document.getElementById("record")
-  stop.style.backgroundColor = "red"
-  stop.innerText = "STOP"
+  const start = document.getElementById("start")
+  start.style.visibility = "hidden"
+  const stop = document.getElementById("stop")
+  stop.style.visibility = "visible"
 }
 
 
 function createStartButton() {
-  const start = document.getElementById("record")
-  start.style.backgroundColor = "green"
-  start.innerText = "START"
+  const start = document.getElementById("start")
+  start.style.visibility = "visible"
+  const stop = document.getElementById("stop")
+  stop.style.visibility = "hidden"
 }
 
 
