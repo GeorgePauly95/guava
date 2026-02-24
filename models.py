@@ -9,10 +9,16 @@ class Base(DeclarativeBase):
     pass
 
 
-class Workout(Base):
-    __tablename__ = "workout"
-
+class Location(Base):
+    __tablename__ = "location"
+    __table_args__ = {"extend_existing": True}
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
+    workout_id: Mapped[int]
     latitude: Mapped[float]
     longitude: Mapped[float]
     time: Mapped[datetime] = mapped_column(TIMESTAMP)
+
+
+class Workout(Base):
+    __tablename__ = "workout"
+    id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
