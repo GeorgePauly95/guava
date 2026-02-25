@@ -1,13 +1,12 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
+from models import Workout, Location
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 
 @app.websocket("/api/ws")
-async def track_position(websocket: WebSocket):
+async def get_metrics(websocket: WebSocket):
     await websocket.accept()
     while True:
         data = await websocket.receive_text()
