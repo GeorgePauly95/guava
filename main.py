@@ -1,7 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from models import Workout, Location
 from services import calculate_metrics
-from engine import engine
 import json
 
 app = FastAPI()
@@ -45,11 +44,13 @@ async def send_location(websocket: WebSocket):
 #   "speed": speed
 #   "workout_id": workout_id
 # }'
-@app.websocket("/api/metrics/:workout_id")
-async def send_metrics(websocket: WebSocket):
+@app.websocket("/api/metrics/{workout_id}")
+async def send_metrics(websocket: WebSocket, workout_id: int):
     await websocket.accept()
     try:
-        while True:
-            await websocket.send_text("Lorem Ipsum")
+        # while True:
+        locations = Location.get_workout_locations(workout_id)
+        metrics = calculate_metrics(locations)
+        await websocket.send_text(json.dumps(metrics))
     except WebSocketDisconnect:
         print("WS disconnected")

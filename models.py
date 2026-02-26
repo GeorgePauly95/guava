@@ -42,9 +42,21 @@ class Location(Base):
                 "workout_id": location["workout_id"],
             },
         )
-        connection.commit()
-        connection.close()
         return
+
+    @classmethod
+    @manage_connection
+    def get_workout_locations(cls, connection, workout_id):
+        locations = connection.execute(
+            text(
+                """SELECT latitude, longitude, time, workout_id
+                FROM location WHERE workout_id=:workout_id
+                ORDER BY time"""
+            ),
+            {"workout_id": workout_id},
+        )
+        locations = [location._mapping for location in locations]
+        return locations
 
 
 class Workout(Base):
@@ -61,12 +73,4 @@ class Workout(Base):
             text("INSERT INTO workout DEFAULT VALUES RETURNING id")
         )
         workout_id = [id._mapping for id in workout_id]
-        connection.commit()
-        connection.close()
         return workout_id
-
-    @classmethod
-    @manage_connection
-    def tbd(cls, connection, workout_id):
-        connection.execute(text("SELECT "), {"workout_id": workout_id})
-        return
