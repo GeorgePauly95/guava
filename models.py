@@ -74,3 +74,12 @@ class Workout(Base):
         )
         workout_id = [id._mapping for id in workout_id]
         return workout_id
+
+    @classmethod
+    @manage_connection
+    def stop_workout(cls, connection, workout_id):
+        connection.execute(
+            text("""UPDATE workout SET completed=:True WHERE id=:workout_id"""),
+            {"True": True, "workout_id": workout_id},
+        )
+        return
