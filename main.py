@@ -7,35 +7,48 @@ import asyncio
 app = FastAPI()
 
 
+# post not get, webhook.
 @app.get("/api/workouts")
 async def start_workout():
     workout_id = Workout.get_workout_id()
     return workout_id
 
 
-@app.post("/api/workouts/{workout_id}/stop")
+@app.patch("/api/workouts/{workout_id}/status")
 async def stop_workout(workout_id: int):
     Workout.stop_workout(workout_id)
     return
 
 
-@app.websocket("/api/location")
-async def receive_location(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await websocket.receive_text()
-        dict_data = json.loads(data)
-        Location.store_location(dict_data)
+# {"type": "metrics",
+# "payload": {
+# "latitude":2,
+# "longitude": 3,
+# "time": 4,
+# "workout_id":5
+# }
+# }
 
 
-@app.websocket("/api/metrics/{workout_id}")
-async def send_metrics(websocket: WebSocket, workout_id: int):
+# {"type": "metrics", "payload": {"workout_id":2}}
+
+
+# validate the message using pydantic classes
+# create a update metrics services function
+@app.websocket("/ws")
+async def dispatch_message(websocket: WebSocket):
     await websocket.accept()
-    try:
-        while True:
-            await asyncio.sleep(5)
-            locations = Location.get_workout_locations(workout_id)
-            metrics = calculate_metrics(locations)
-            await websocket.send_text(json.dumps(metrics))
-    except WebSocketDisconnect:
-        print("WS disconnected")
+    message = await websocket.receive_text()
+    message = json.loads(message)
+    if message["type"] == "location":
+        Location.store_location(message["payload"])
+    elif message["type"] == "metrics":
+        workout_id = message["payload"]["workout_id"]
+        try:
+            while True:
+                await asyncio.sleep(5)
+                locations = Location.get_workout_locations(workout_id)
+                metrics = calculate_metrics(locations)
+                await websocket.send_text(json.dumps(metrics))
+        except WebSocketDisconnect:
+            print("WS disconnected")
