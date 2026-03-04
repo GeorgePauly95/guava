@@ -1,6 +1,2 @@
 __pycache__/
 .env
-alembic.ini
-alembic/env.py
-alembic/README
-alembic/script.py.mako

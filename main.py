@@ -36,7 +36,6 @@ async def stop_workout(workout_id: int):
     return
 
 
-# create a update metrics services function
 @app.websocket("/ws")
 async def dispatch_message(websocket: WebSocket):
     await websocket.accept()
