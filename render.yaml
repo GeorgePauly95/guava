@@ -7,7 +7,7 @@ services:
   repo: https://github.com/GeorgePauly95/guava
   plan: free
   envVars:
-  - key: DATABASE_URL                  # ← rename from "url" to "DATABASE_URL"
+  - key: url                  # ← rename from "url" to "DATABASE_URL"
     fromDatabase:                       # ← link it to your postgres
       name: guava                       # ← matches your database name below
       property: connectionString
