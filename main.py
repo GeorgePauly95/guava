@@ -1,6 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ValidationError
-from models import Workout
+from models import Workouts
 from services import get_metrics, store_location
 import asyncio
 import json
@@ -20,15 +20,19 @@ class Message(BaseModel):
     payload: Location_payload
 
 
+class Workout(BaseModel):
+    id: int
+
+
 @app.post("/api/workouts")
-async def start_workout():
-    workout_id = Workout.get_workout_id()
-    return workout_id
+async def start_workout() -> Workout:
+    workout_id = Workouts.get_workout_id()
+    return Workout(id=workout_id)
 
 
 @app.patch("/api/workouts/{workout_id}/status")
 async def stop_workout(workout_id: int):
-    Workout.stop_workout(workout_id)
+    Workouts.stop_workout(workout_id)
     return
 
 

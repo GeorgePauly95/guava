@@ -18,7 +18,7 @@ class Base(DeclarativeBase):
     pass
 
 
-class Location(Base):
+class Locations(Base):
     __tablename__ = "location"
     __table_args__ = {"extend_existing": True}
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
@@ -60,7 +60,7 @@ class Location(Base):
         return locations
 
 
-class Workout(Base):
+class Workouts(Base):
     __tablename__ = "workout"
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
     status: Mapped[bool] = mapped_column(Boolean, server_default=sqlalchemy.sql.true())
@@ -68,10 +68,11 @@ class Workout(Base):
     @classmethod
     @manage_connection
     def get_workout_id(cls, connection):
-        workout_id = connection.execute(
+        workout = connection.execute(
             text("INSERT INTO workout DEFAULT VALUES RETURNING id")
         )
-        workout_id = [id._mapping for id in workout_id]
+        workout_id = int([id._mapping for id in workout][0]["id"])
+        print(type(workout_id), workout_id)
         return workout_id
 
     @classmethod

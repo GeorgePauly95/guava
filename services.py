@@ -1,14 +1,14 @@
 from haversine import haversine
-from models import Location
+from models import Locations
 
 
 async def get_metrics(workout_id: int):
-    locations = Location.get_workout_locations(workout_id)
+    locations = Locations.get_workout_locations(workout_id)
     return calculate_metrics(locations)
 
 
 def store_location(location):
-    Location.store_location(location)
+    Locations.store_location(location)
 
 
 def calculate_metrics(locations):
