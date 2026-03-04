@@ -1,14 +1,26 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from models import Workout, Location
-from services import calculate_metrics
-import json
+from pydantic import BaseModel, ValidationError
+from models import Workout
+from services import get_metrics, store_location
 import asyncio
+import json
 
 app = FastAPI()
 
 
-# post not get, webhook.
-@app.get("/api/workouts")
+class Location_payload(BaseModel):
+    latitude: float
+    longitude: float
+    time: str
+    workout_id: int
+
+
+class Message(BaseModel):
+    type: str
+    payload: Location_payload
+
+
+@app.post("/api/workouts")
 async def start_workout():
     workout_id = Workout.get_workout_id()
     return workout_id
@@ -20,35 +32,37 @@ async def stop_workout(workout_id: int):
     return
 
 
-# {"type": "metrics",
-# "payload": {
-# "latitude":2,
-# "longitude": 3,
-# "time": 4,
-# "workout_id":5
-# }
-# }
-
-
-# {"type": "metrics", "payload": {"workout_id":2}}
-
-
-# validate the message using pydantic classes
 # create a update metrics services function
 @app.websocket("/ws")
 async def dispatch_message(websocket: WebSocket):
     await websocket.accept()
-    message = await websocket.receive_text()
-    message = json.loads(message)
-    if message["type"] == "location":
-        Location.store_location(message["payload"])
-    elif message["type"] == "metrics":
-        workout_id = message["payload"]["workout_id"]
+    workout_id = None
+
+    async def receive_locations():
+        nonlocal workout_id
         try:
             while True:
-                await asyncio.sleep(5)
-                locations = Location.get_workout_locations(workout_id)
-                metrics = calculate_metrics(locations)
-                await websocket.send_text(json.dumps(metrics))
+                try:
+                    message = json.loads(await websocket.receive_text())
+                    try:
+                        Message(**message)
+                        if message["type"] == "location":
+                            workout_id = message["payload"]["workout_id"]
+                            store_location(message["payload"])
+                    except ValidationError as e:
+                        print("Validation Error: ", e)
+                except Exception as e:
+                    print("Exception: ", e)
         except WebSocketDisconnect:
-            print("WS disconnected")
+            print("Client disconnected")
+
+    async def update_metrics():
+        while True:
+            await asyncio.sleep(5)
+            if workout_id is not None:
+                metrics = await get_metrics(workout_id)
+                await websocket.send_text(json.dumps(metrics))
+
+    task = asyncio.create_task(update_metrics())
+    await receive_locations()
+    task.cancel()
