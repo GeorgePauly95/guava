@@ -7,8 +7,10 @@ services:
   repo: https://github.com/GeorgePauly95/guava
   plan: free
   envVars:
-  - key: url
-    sync: false
+  - key: DATABASE_URL                  # ← rename from "url" to "DATABASE_URL"
+    fromDatabase:                       # ← link it to your postgres
+      name: guava                       # ← matches your database name below
+      property: connectionString
   region: oregon
   buildCommand: pip install -r requirements.txt && alembic upgrade head
   startCommand: fastapi run main.py --host 0.0.0.0 --port $PORT
