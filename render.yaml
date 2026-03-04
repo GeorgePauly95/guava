@@ -17,5 +17,3 @@ services:
 databases:
 - name: guava
   plan: free
-  diskSizeGB: 1
-
