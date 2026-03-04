@@ -15,7 +15,7 @@ services:
   autoDeployTrigger: commit
 
 databases:
-  name: guava
+- name: guava
   plan: free
   diskSizeGB: 1
 
