@@ -1,0 +1,21 @@
+# Exported from Render on 2026-03-04T10:14:31Z
+version: "1"
+services:
+- type: web
+  name: guava
+  runtime: python
+  repo: https://github.com/GeorgePauly95/guava
+  plan: free
+  envVars:
+  - key: url
+    sync: false
+  region: oregon
+  buildCommand: pip install -r requirements.txt
+  startCommand: fastapi run main.py --host 0.0.0.0 --port $PORT
+  autoDeployTrigger: commit
+
+databases:
+  name: guava
+  plan: free
+  diskSizeGB: 1
+
