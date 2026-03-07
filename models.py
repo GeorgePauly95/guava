@@ -26,6 +26,7 @@ class Locations(Base):
     latitude: Mapped[float]
     longitude: Mapped[float]
     time: Mapped[datetime] = mapped_column(TIMESTAMP)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP)
 
     @classmethod
     @manage_connection
@@ -64,6 +65,11 @@ class Workouts(Base):
     __tablename__ = "workout"
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
     status: Mapped[bool] = mapped_column(Boolean, server_default=sqlalchemy.sql.true())
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
+    paused_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
+    resumed_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
+    stopped_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
+    deleted_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
 
     @classmethod
     @manage_connection

@@ -1,27 +1,12 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from models import Workouts
 from services import get_metrics, store_location
+from schemas import Message, Workout
 import asyncio
 import json
 
 app = FastAPI()
-
-
-class Location_payload(BaseModel):
-    latitude: float
-    longitude: float
-    time: str
-    workout_id: int
-
-
-class Message(BaseModel):
-    type: str
-    payload: Location_payload
-
-
-class Workout(BaseModel):
-    id: int
 
 
 @app.post("/api/workouts")
@@ -56,6 +41,8 @@ async def dispatch_message(websocket: WebSocket):
                         print("Validation Error: ", e)
                 except Exception as e:
                     print("Exception: ", e)
+                    # check if this is okay to do. it was done to prevent repeated exceptions
+                    break
         except WebSocketDisconnect:
             print("Client disconnected")
 
