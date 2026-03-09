@@ -14,9 +14,13 @@ class Message(BaseModel):
     payload: Location
 
 
-class WorkoutId(BaseModel):
+class WorkoutResponse(BaseModel):
     id: int
 
 
-class Workout(BaseModel):
+class WorkoutStartRequest(BaseModel):
     created_at: datetime
+
+
+class WorkoutStopRequest(BaseModel):
+    stopped_at: datetime
