@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 
 class Location(BaseModel):
@@ -13,5 +14,9 @@ class Message(BaseModel):
     payload: Location
 
 
-class Workout(BaseModel):
+class WorkoutId(BaseModel):
     id: int
+
+
+class Workout(BaseModel):
+    created_at: datetime
