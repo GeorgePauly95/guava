@@ -11,6 +11,10 @@ def store_location(location):
     Locations.store_location(location)
 
 
+def validate_locations(locations):
+    return locations
+
+
 def calculate_metrics(locations):
     distance = calculate_distance(locations)
     time = calculate_time(locations)

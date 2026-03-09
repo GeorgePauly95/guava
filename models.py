@@ -31,17 +31,18 @@ class Locations(Base):
     @classmethod
     @manage_connection
     def store_location(cls, connection, location):
-        latitude, longitude, time, workout_id = location.values()
+        latitude, longitude, time, workout_id, created_at = location.values()
         connection.execute(
             text(
-                """INSERT INTO location(latitude, longitude, time, workout_id)
-                VALUES(:latitude, :longitude, :time, :workout_id)"""
+                """INSERT INTO location(latitude, longitude, time, workout_id, created_at)
+                VALUES(:latitude, :longitude, :time, :workout_id, :created_at)"""
             ),
             {
                 "latitude": latitude,
                 "longitude": longitude,
                 "time": time,
                 "workout_id": workout_id,
+                "created_at": created_at,
             },
         )
         return
@@ -51,7 +52,7 @@ class Locations(Base):
     def get_workout_locations(cls, connection, workout_id):
         locations = connection.execute(
             text(
-                """SELECT latitude, longitude, time, workout_id
+                """SELECT latitude, longitude, time, workout_id, created_at
                 FROM location WHERE workout_id=:workout_id
                 ORDER BY time"""
             ),
@@ -73,20 +74,22 @@ class Workouts(Base):
 
     @classmethod
     @manage_connection
-    def get_workout_id(cls, connection):
+    def create_workout(cls, connection, created_at):
         workout = connection.execute(
-            text("INSERT INTO workout DEFAULT VALUES RETURNING id")
+            text("INSERT INTO workout(created_at) VALUES(:created_at) RETURNING id"),
+            {"created_at": created_at},
         )
         workout_id = int([id._mapping for id in workout][0]["id"])
-        print(type(workout_id), workout_id)
         return workout_id
 
     @classmethod
     @manage_connection
-    def stop_workout(cls, connection, workout_id):
+    def stop_workout(cls, connection, workout_id, stopped_at):
         connection.execute(
-            text("""UPDATE workout SET status=:True WHERE id=:workout_id"""),
-            {"True": True, "workout_id": workout_id},
+            text(
+                """UPDATE workout SET status=:True, stopped_at=:stopped_at WHERE id=:workout_id"""
+            ),
+            {"True": True, "workout_id": workout_id, "stopped_at": stopped_at},
         )
         return
 

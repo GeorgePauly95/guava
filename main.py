@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from pydantic import ValidationError
 from models import Workouts
 from services import get_metrics, store_location
@@ -10,14 +10,18 @@ app = FastAPI()
 
 
 @app.post("/api/workouts")
-async def start_workout() -> Workout:
-    workout_id = Workouts.get_workout_id()
+async def start_workout(request: Request) -> Workout:
+    body = await request.json()
+    created_at = body["created_at"]
+    workout_id = Workouts.create_workout(created_at)
     return Workout(id=workout_id)
 
 
 @app.patch("/api/workouts/{workout_id}/status")
-async def stop_workout(workout_id: int):
-    Workouts.stop_workout(workout_id)
+async def stop_workout(workout_id: int, request: Request):
+    body = await request.json()
+    stopped_at = body["stopped_at"]
+    Workouts.stop_workout(workout_id, stopped_at)
     return
 
 
