@@ -11,8 +11,8 @@ app = FastAPI()
 
 @app.post("/api/workouts")
 async def start_workout(workoutStartRequest: WorkoutStartRequest) -> WorkoutResponse:
-    created_at = workoutStartRequest.created_at
-    workout_id = Workouts.create_workout(created_at)
+    started_at = workoutStartRequest.started_at
+    workout_id = Workouts.create_workout(started_at)
     return WorkoutResponse(id=workout_id)
 
 

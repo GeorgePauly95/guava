@@ -19,7 +19,7 @@ class WorkoutResponse(BaseModel):
 
 
 class WorkoutStartRequest(BaseModel):
-    created_at: datetime
+    started_at: datetime
 
 
 class WorkoutStopRequest(BaseModel):

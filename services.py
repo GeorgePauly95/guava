@@ -1,18 +1,26 @@
 from haversine import haversine
-from models import Locations
+from models import Locations, Workouts
 
 
 async def get_metrics(workout_id: int):
     locations = Locations.get_workout_locations(workout_id)
-    return calculate_metrics(locations)
+    validated_locations = validate_locations(locations, workout_id)
+    return calculate_metrics(validated_locations)
 
 
 def store_location(location):
     Locations.store_location(location)
 
 
-def validate_locations(locations):
-    return locations
+def validate_locations(locations, workout_id):
+    workout = Workouts.get_workout(workout_id)
+    validated_locations = [
+        location
+        for location in locations
+        if location["created_at"] > workout["created_at"]
+        and location["created_at"] > workout["stopped_at"]
+    ]
+    return validated_locations
 
 
 def calculate_metrics(locations):
