@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket
 from models import Workouts
-from services import handle_message, update_metrics
-from schemas import Message, WorkoutResponse, WorkoutStartRequest, WorkoutStopRequest
+from services import handle_message, update_metrics, handle_status
+from schemas import Message, WorkoutResponse, WorkoutStartRequest, WorkoutModifyRequest
 import json
 import asyncio
 
@@ -15,15 +15,13 @@ async def start_workout(workoutStartRequest: WorkoutStartRequest) -> WorkoutResp
     return WorkoutResponse(id=workout_id)
 
 
-# include pause, resume in this endpoint
 @app.patch("/api/workouts/{workout_id}/status")
-async def stop_workout(workout_id: int, workoutStopRequest: WorkoutStopRequest):
-    stopped_at = workoutStopRequest.stopped_at
-    Workouts.stop_workout(workout_id, stopped_at)
+async def stop_workout(workout_id: int, workoutModifyRequest: WorkoutModifyRequest):
+    status, time = workoutModifyRequest.status, workoutModifyRequest.modified_at
+    handle_status(workout_id, status, time)
     return
 
 
-# rewrite this function. only include controller layer stuff here. (Ex sleep should be in service layer)
 @app.websocket("/ws")
 async def handle_ws_connection(websocket: WebSocket):
     await websocket.accept()

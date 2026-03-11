@@ -1,35 +1,38 @@
 from haversine import haversine
-from models import Locations, Workouts
+from models import Locations, Workouts, PauseAndResumeLogs
 import json
 import asyncio
+from datetime import datetime
 
 
-async def get_metrics(workout_id: int):
-    locations = Locations.get_workout_locations(workout_id)
-    # validated_locations = validate_locations(locations, workout_id)
-    print("locations:", locations)
-    return calculate_metrics(locations)
+def handle_status(workout_id, status, time):
+    if status == "stop":
+        Workouts.stop_workout(workout_id, time)
+    elif status == "pause":
+        PauseAndResumeLogs.pause_workout(workout_id, time)
+    else:
+        PauseAndResumeLogs.resume_workout(workout_id, time)
+
+
+def validate_location(location, workout_id):
+    workout = Workouts.get_workout(workout_id)
+
+    if datetime.fromisoformat(location["time"]) < workout["started_at"]:
+        return False
+    elif datetime.fromisoformat(location["time"]) > workout["stopped_at"]:
+        return False
+    return True
 
 
 def store_location(location):
-    Locations.store_location(location)
+    workout_id = location["workout_id"]
+    if validate_location(location, workout_id):
+        Locations.store_location(location)
 
 
-# def validate_locations(locations, workout_id):
-#     workout = Workouts.get_workout(workout_id)
-#     validated_locations = [
-#         location
-#         for location in locations
-#         if location["created_at"] > workout["created_at"]
-#         and location["created_at"] > workout["stopped_at"]
-#     ]
-#     return validated_locations
-
-
-def calculate_metrics(locations):
-    distance = calculate_distance(locations)
-    time = calculate_time(locations)
-    return {"distance": distance, "time": time}
+def handle_message(message):
+    if message["type"] == "location":
+        store_location(message["payload"])
 
 
 def calculate_distance(locations):
@@ -50,18 +53,21 @@ def calculate_time(locations):
     return str(time)
 
 
-def handle_message(message):
-    if message["type"] == "location":
-        store_location(message["payload"])
+async def get_metrics(workout_id: int):
+    locations = Locations.get_workout_locations(workout_id)
+    return calculate_metrics(locations)
+
+
+def calculate_metrics(locations):
+    distance = calculate_distance(locations)
+    time = calculate_time(locations)
+    return {"distance": distance, "time": time}
 
 
 async def update_metrics(websocket):
-    print("update metrics is called!")
     while True:
         await asyncio.sleep(5)
         workout_id = Workouts.get_active_workout()
         if workout_id is not None:
-            print("active workout id is:", workout_id)
             metrics = await get_metrics(workout_id)
-            print("metrics are:", metrics)
             await websocket.send_text(json.dumps(metrics))

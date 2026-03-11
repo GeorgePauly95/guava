@@ -91,7 +91,7 @@ class Workouts(Base):
     def stop_workout(cls, connection, workout_id, stopped_at):
         connection.execute(
             text(
-                """UPDATE workout SET status=:True, stopped_at=:stopped_at WHERE id=:workout_id"""
+                """UPDATE workout SET status=:True, stopped_at=:stopped_at, updated_at=now() WHERE id=:workout_id"""
             ),
             {"True": True, "workout_id": workout_id, "stopped_at": stopped_at},
         )
@@ -117,8 +117,7 @@ class Workouts(Base):
         return workout_id
 
 
-# rename table to somehow indicate pause and resume event only
-class WorkoutLogs(Base):
+class PauseAndResumeLogs(Base):
     __tablename__ = "workout_logs"
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
     workout_id: Mapped[int] = mapped_column(ForeignKey("workout.id"))
@@ -129,3 +128,37 @@ class WorkoutLogs(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
     deleted_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
+
+    @classmethod
+    @manage_connection
+    def pause_workout(cls, connection, workout_id, time):
+        logs = connection.execute(
+            text(
+                "SELECT * FROM workout_logs WHERE workout_id=:workout_id AND resumed_at IS NULL"
+            ),
+            {"workout_id": workout_id},
+        )
+        if logs.all() == []:
+            connection.execute(
+                text(
+                    "INSERT INTO workout_logs(workout_id, paused_at) VALUES(:workout_id, :paused_at)"
+                ),
+                {"workout_id": workout_id, "paused_at": time},
+            )
+
+    @classmethod
+    @manage_connection
+    def resume_workout(cls, connection, workout_id, time):
+        logs = connection.execute(
+            text(
+                "SELECT * FROM workout_logs WHERE workout_id=:workout_id AND resumed_at IS NULL"
+            ),
+            {"workout_id": workout_id},
+        )
+        if logs.all() != []:
+            connection.execute(
+                text(
+                    "UPDATE workout_logs SET workout_id=:workout_id, resumed_at=:resumed_at, updated_at=now() WHERE workout_id=:workout_id AND resumed_at IS NULL"
+                ),
+                {"workout_id": workout_id, "resumed_at": time},
+            )

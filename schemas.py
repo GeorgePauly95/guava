@@ -3,14 +3,6 @@ from datetime import datetime
 from enum import Enum
 
 
-# add status attribute to indicate event, start, stop, resume, pause
-# class Workout(BaseModel, Enum):
-#     stopped_at: datetime
-#     started_at: datetime
-#     resumed_at: datetime
-#     paused_at: datetime
-
-
 class Location(BaseModel):
     latitude: float
     longitude: float
@@ -31,5 +23,12 @@ class WorkoutStartRequest(BaseModel):
     started_at: datetime
 
 
-class WorkoutStopRequest(BaseModel):
-    stopped_at: datetime
+class Status(str, Enum):
+    STOP = "stop"
+    PAUSE = "pause"
+    RESUME = "resume"
+
+
+class WorkoutModifyRequest(BaseModel):
+    status: Status
+    modified_at: datetime
