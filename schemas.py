@@ -1,5 +1,14 @@
 from pydantic import BaseModel
 from datetime import datetime
+from enum import Enum
+
+
+# add status attribute to indicate event, start, stop, resume, pause
+# class Workout(BaseModel, Enum):
+#     stopped_at: datetime
+#     started_at: datetime
+#     resumed_at: datetime
+#     paused_at: datetime
 
 
 class Location(BaseModel):

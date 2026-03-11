@@ -1,10 +1,9 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
-from pydantic import ValidationError
+from fastapi import FastAPI, WebSocket
 from models import Workouts
-from services import get_metrics, store_location
+from services import handle_message, update_metrics
 from schemas import Message, WorkoutResponse, WorkoutStartRequest, WorkoutStopRequest
-import asyncio
 import json
+import asyncio
 
 app = FastAPI()
 
@@ -16,6 +15,7 @@ async def start_workout(workoutStartRequest: WorkoutStartRequest) -> WorkoutResp
     return WorkoutResponse(id=workout_id)
 
 
+# include pause, resume in this endpoint
 @app.patch("/api/workouts/{workout_id}/status")
 async def stop_workout(workout_id: int, workoutStopRequest: WorkoutStopRequest):
     stopped_at = workoutStopRequest.stopped_at
@@ -23,38 +23,21 @@ async def stop_workout(workout_id: int, workoutStopRequest: WorkoutStopRequest):
     return
 
 
+# rewrite this function. only include controller layer stuff here. (Ex sleep should be in service layer)
 @app.websocket("/ws")
-async def dispatch_message(websocket: WebSocket):
+async def handle_ws_connection(websocket: WebSocket):
     await websocket.accept()
-    workout_id = None
 
     async def receive_locations():
-        nonlocal workout_id
-        try:
-            while True:
-                try:
-                    message = json.loads(await websocket.receive_text())
-                    try:
-                        Message(**message)
-                        if message["type"] == "location":
-                            workout_id = message["payload"]["workout_id"]
-                            store_location(message["payload"])
-                    except ValidationError as e:
-                        print("Validation Error: ", e)
-                except Exception as e:
-                    print("Exception: ", e)
-                    # check if this is okay to do. it was done to prevent repeated exceptions
-                    break
-        except WebSocketDisconnect:
-            print("Client disconnected")
-
-    async def update_metrics():
         while True:
-            await asyncio.sleep(5)
-            if workout_id is not None:
-                metrics = await get_metrics(workout_id)
-                await websocket.send_text(json.dumps(metrics))
+            try:
+                message = json.loads(await websocket.receive_text())
+                Message(**message)
+                handle_message(message)
+            except Exception as e:
+                print(e)
+                break
 
-    task = asyncio.create_task(update_metrics())
+    task = asyncio.create_task(update_metrics(websocket))
     await receive_locations()
     task.cancel()

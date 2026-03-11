@@ -33,18 +33,17 @@ class Locations(Base):
     @classmethod
     @manage_connection
     def store_location(cls, connection, location):
-        latitude, longitude, time, workout_id, created_at = location.values()
+        latitude, longitude, time, workout_id = location.values()
         connection.execute(
             text(
-                """INSERT INTO location(latitude, longitude, time, workout_id, created_at)
-                VALUES(:latitude, :longitude, :time, :workout_id, :created_at)"""
+                """INSERT INTO location(latitude, longitude, time, workout_id)
+                VALUES(:latitude, :longitude, :time, :workout_id)"""
             ),
             {
                 "latitude": latitude,
                 "longitude": longitude,
                 "time": time,
                 "workout_id": workout_id,
-                "created_at": created_at,
             },
         )
         return
@@ -54,7 +53,7 @@ class Locations(Base):
     def get_workout_locations(cls, connection, workout_id):
         locations = connection.execute(
             text(
-                """SELECT latitude, longitude, time, workout_id, created_at
+                """SELECT latitude, longitude, time, workout_id
                 FROM location WHERE workout_id=:workout_id
                 ORDER BY time"""
             ),
@@ -67,6 +66,7 @@ class Locations(Base):
 class Workouts(Base):
     __tablename__ = "workout"
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
+    # can delete this status column
     status: Mapped[bool] = mapped_column(Boolean, server_default=sqlalchemy.sql.true())
     started_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
     stopped_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
@@ -107,7 +107,17 @@ class Workouts(Base):
         workout = [workout._mapping for workout in workouts][0]
         return workout
 
+    @classmethod
+    @manage_connection
+    def get_active_workout(cls, connection):
+        workouts = connection.execute(
+            text("SELECT id FROM workout WHERE stopped_at IS NULL")
+        )
+        workout_id = [workout._mapping for workout in workouts][0]["id"]
+        return workout_id
 
+
+# rename table to somehow indicate pause and resume event only
 class WorkoutLogs(Base):
     __tablename__ = "workout_logs"
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
