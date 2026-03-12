@@ -1,36 +1,37 @@
 from haversine import haversine
 from models import Locations, Workouts, PauseAndResumeLogs
+from schemas import WorkoutModifyResponse
 import json
 import asyncio
 from datetime import datetime
 
 
-# paused_at should be greater than started_at
 def modify_workout(workout_id, status, time):
     workout = Workouts.get_workout(workout_id)
-
-    if workout is None:
-        return {
-            "success": False,
-            "error": f"Workout with id: {workout_id} doesn't exist.",
-            "status": "WORKOUT_NOT_FOUND",
-        }
+    if workout is None or workout["started_at"] > time:
+        return WorkoutModifyResponse(
+            success=False,
+            error=f"Workout with id: {workout_id} doesn't exist.",
+            status="WORKOUT_NOT_FOUND",
+        )
 
     if workout["stopped_at"] is not None:
-        return {
-            "success": False,
-            "error": f"Workout with id: {workout_id} is already completed.",
-            "status": "WORKOUT_ALREADY_COMPLETED",
-        }
+        return WorkoutModifyResponse(
+            success=False,
+            error=f"Workout with id: {workout_id} is already completed.",
+            status="WORKOUT_ALREADY_COMPLETED",
+        )
 
     if status == "stop":
         Workouts.stop_workout(workout_id, time)
+        return WorkoutModifyResponse(success=True, status="WORKOUT_STOPPED")
 
     elif status == "pause":
         PauseAndResumeLogs.pause_workout(workout_id, time)
-
+        return WorkoutModifyResponse(success=True, status="WORKOUT_PAUSED")
     else:
         PauseAndResumeLogs.resume_workout(workout_id, time)
+        return WorkoutModifyResponse(success=True, status="WORKOUT_RESUMED")
 
 
 def store_location(location):

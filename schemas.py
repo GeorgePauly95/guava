@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 
 
 class Location(BaseModel):
@@ -15,7 +16,13 @@ class Message(BaseModel):
     payload: Location
 
 
-class WorkoutResponse(BaseModel):
+class WorkoutModifyResponse(BaseModel):
+    success: bool
+    error: Optional[str] = None
+    status: str
+
+
+class WorkoutStartResponse(BaseModel):
     id: int
 
 

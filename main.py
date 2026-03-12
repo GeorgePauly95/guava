@@ -1,26 +1,45 @@
 from fastapi import FastAPI, WebSocket
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from models import Workouts
 from services import handle_message, update_metrics, modify_workout
-from schemas import Message, WorkoutResponse, WorkoutStartRequest, WorkoutModifyRequest
+from schemas import (
+    Message,
+    WorkoutStartResponse,
+    WorkoutStartRequest,
+    WorkoutModifyRequest,
+)
 import json
 import asyncio
 
 app = FastAPI()
 
 
+def status_code_map(status):
+    if status == "WORKOUT_NOT_FOUND":
+        return 404
+    elif status == "WORKOUT_ALREADY_COMPLETED":
+        return 409
+    else:
+        return 200
+
+
 @app.post("/api/workouts")
-async def start_workout(workoutStartRequest: WorkoutStartRequest) -> WorkoutResponse:
+async def start_workout(
+    workoutStartRequest: WorkoutStartRequest,
+) -> WorkoutStartResponse:
     started_at = workoutStartRequest.started_at
     workout_id = Workouts.create_workout(started_at)
-    return WorkoutResponse(id=workout_id)
+    return WorkoutStartResponse(id=workout_id)
 
 
 @app.patch("/api/workouts/{workout_id}/status")
 async def stop_workout(workout_id: int, workoutModifyRequest: WorkoutModifyRequest):
     status, time = workoutModifyRequest.status, workoutModifyRequest.modified_at
-    response = modify_workout(workout_id, status, time)
-    print("response body:", response_body)
-    return
+    response_body = jsonable_encoder(modify_workout(workout_id, status, time))
+    return JSONResponse(
+        status_code=status_code_map(response_body["status"]), content=response_body
+    )
 
 
 @app.websocket("/ws")
