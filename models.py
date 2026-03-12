@@ -136,8 +136,6 @@ class PauseAndResumeLogs(Base):
     @classmethod
     @manage_connection
     def pause_workout(cls, connection, workout_id, time):
-        # this handles only one case:
-        # 1. there is already a paused session
         logs = connection.execute(
             text(
                 "SELECT * FROM pause_resume_logs WHERE workout_id=:workout_id AND resumed_at IS NULL"

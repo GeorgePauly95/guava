@@ -80,7 +80,26 @@ def calculate_time(locations):
 
 def validate_locations(locations, workout_id):
     logs = PauseAndResumeLogs.get_logs(workout_id)
-    return locations
+    if logs == []:
+        return locations
+
+    def validate_location(location):
+        nonlocal logs
+        for log in logs:
+            if log["resumed_at"] is None:
+                if location["time"] > log["paused_at"]:
+                    return False
+            else:
+                if (
+                    location["time"] > log["paused_at"]
+                    and location["time"] < log["resumed_at"]
+                ):
+                    return False
+        return True
+
+    validated_locations = list(filter(validate_location, locations))
+    print(validated_locations)
+    return validated_locations
 
 
 async def get_metrics(workout_id: int):
@@ -88,7 +107,7 @@ async def get_metrics(workout_id: int):
     if len(locations) < 2:
         return None
     validated_locations = validate_locations(locations, workout_id)
-    return calculate_metrics(locations)
+    return calculate_metrics(validated_locations)
 
 
 def calculate_metrics(locations):
