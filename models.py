@@ -104,8 +104,10 @@ class Workouts(Base):
             text("SELECT * FROM workout WHERE id=:workout_id"),
             {"workout_id": workout_id},
         )
-        workout = [workout._mapping for workout in workouts][0]
-        return workout
+        workout = workouts.fetchone()
+        if workout is None:
+            return workout
+        return workout._mapping
 
     @classmethod
     @manage_connection
@@ -118,10 +120,10 @@ class Workouts(Base):
 
 
 class PauseAndResumeLogs(Base):
-    __tablename__ = "workout_logs"
+    __tablename__ = "pause_resume_logs"
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
     workout_id: Mapped[int] = mapped_column(ForeignKey("workout.id"))
-    paused_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
+    paused_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
     resumed_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP, nullable=False, server_default=func.now()
@@ -134,14 +136,14 @@ class PauseAndResumeLogs(Base):
     def pause_workout(cls, connection, workout_id, time):
         logs = connection.execute(
             text(
-                "SELECT * FROM workout_logs WHERE workout_id=:workout_id AND resumed_at IS NULL"
+                "SELECT * FROM pause_resume_logs WHERE workout_id=:workout_id AND resumed_at IS NULL"
             ),
             {"workout_id": workout_id},
         )
         if logs.all() == []:
             connection.execute(
                 text(
-                    "INSERT INTO workout_logs(workout_id, paused_at) VALUES(:workout_id, :paused_at)"
+                    "INSERT INTO pause_resume_logs(workout_id, paused_at) VALUES(:workout_id, :paused_at)"
                 ),
                 {"workout_id": workout_id, "paused_at": time},
             )
@@ -151,14 +153,14 @@ class PauseAndResumeLogs(Base):
     def resume_workout(cls, connection, workout_id, time):
         logs = connection.execute(
             text(
-                "SELECT * FROM workout_logs WHERE workout_id=:workout_id AND resumed_at IS NULL"
+                "SELECT * FROM pause_resume_logs WHERE workout_id=:workout_id AND resumed_at IS NULL"
             ),
             {"workout_id": workout_id},
         )
         if logs.all() != []:
             connection.execute(
                 text(
-                    "UPDATE workout_logs SET workout_id=:workout_id, resumed_at=:resumed_at, updated_at=now() WHERE workout_id=:workout_id AND resumed_at IS NULL"
+                    "UPDATE pause_resume_logs SET workout_id=:workout_id, resumed_at=:resumed_at, updated_at=now() WHERE workout_id=:workout_id AND resumed_at IS NULL"
                 ),
                 {"workout_id": workout_id, "resumed_at": time},
             )
