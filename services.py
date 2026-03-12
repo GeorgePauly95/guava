@@ -16,8 +16,9 @@ def handle_status(workout_id, status, time):
 
 def validate_location(location, workout_id):
     workout = Workouts.get_workout(workout_id)
-
-    if datetime.fromisoformat(location["time"]) < workout["started_at"]:
+    if workout is None:
+        return False
+    elif datetime.fromisoformat(location["time"]) < workout["started_at"]:
         return False
     elif datetime.fromisoformat(location["time"]) > workout["stopped_at"]:
         return False
