@@ -1,6 +1,6 @@
 from fastapi import FastAPI, WebSocket
 from models import Workouts
-from services import handle_message, update_metrics, handle_status
+from services import handle_message, update_metrics, modify_workout
 from schemas import Message, WorkoutResponse, WorkoutStartRequest, WorkoutModifyRequest
 import json
 import asyncio
@@ -18,12 +18,13 @@ async def start_workout(workoutStartRequest: WorkoutStartRequest) -> WorkoutResp
 @app.patch("/api/workouts/{workout_id}/status")
 async def stop_workout(workout_id: int, workoutModifyRequest: WorkoutModifyRequest):
     status, time = workoutModifyRequest.status, workoutModifyRequest.modified_at
-    handle_status(workout_id, status, time)
+    response = modify_workout(workout_id, status, time)
+    print("response body:", response_body)
     return
 
 
 @app.websocket("/ws")
-async def handle_ws_connection(websocket: WebSocket):
+async def handle_ws_messages(websocket: WebSocket):
     await websocket.accept()
 
     async def receive_locations():

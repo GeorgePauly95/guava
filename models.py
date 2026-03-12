@@ -89,11 +89,12 @@ class Workouts(Base):
     @classmethod
     @manage_connection
     def stop_workout(cls, connection, workout_id, stopped_at):
-        connection.execute(
+        workout = connection.execute(
             text(
-                """UPDATE workout SET status=:True, stopped_at=:stopped_at, updated_at=now() WHERE id=:workout_id"""
+                """UPDATE workout SET status=True, stopped_at=:stopped_at, updated_at=now()
+                WHERE id=:workout_id AND stopped_at IS NULL"""
             ),
-            {"True": True, "workout_id": workout_id, "stopped_at": stopped_at},
+            {"workout_id": workout_id, "stopped_at": stopped_at},
         )
         return
 
@@ -111,12 +112,13 @@ class Workouts(Base):
 
     @classmethod
     @manage_connection
-    def get_active_workout(cls, connection):
+    def get_active_workouts(cls, connection):
         workouts = connection.execute(
             text("SELECT id FROM workout WHERE stopped_at IS NULL")
         )
-        workout_id = [workout._mapping for workout in workouts][0]["id"]
-        return workout_id
+        workouts = [workout._mapping for workout in workouts]
+        workout_ids = [workout["id"] for workout in workouts]
+        return workout_ids
 
 
 class PauseAndResumeLogs(Base):
@@ -134,13 +136,19 @@ class PauseAndResumeLogs(Base):
     @classmethod
     @manage_connection
     def pause_workout(cls, connection, workout_id, time):
+        # this handles only one case:
+        # 1. there is already a paused session
         logs = connection.execute(
             text(
                 "SELECT * FROM pause_resume_logs WHERE workout_id=:workout_id AND resumed_at IS NULL"
             ),
             {"workout_id": workout_id},
         )
-        if logs.all() == []:
+        logs = logs.all()
+        print("logs:", logs)
+        if len(logs) == 0:
+            print("len of logs:", len(logs))
+            print("This should not get printed")
             connection.execute(
                 text(
                     "INSERT INTO pause_resume_logs(workout_id, paused_at) VALUES(:workout_id, :paused_at)"
@@ -164,3 +172,15 @@ class PauseAndResumeLogs(Base):
                 ),
                 {"workout_id": workout_id, "resumed_at": time},
             )
+
+    @classmethod
+    @manage_connection
+    def get_logs(cls, connection, workout_id):
+        logs = connection.execute(
+            text(
+                "SELECT paused_at, resumed_at FROM pause_resume_logs WHERE workout_id=:workout_id"
+            ),
+            {"workout_id": workout_id},
+        )
+        logs = [log._mapping for log in logs]
+        return logs
