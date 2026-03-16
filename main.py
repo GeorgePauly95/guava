@@ -18,8 +18,14 @@ app = FastAPI()
 def status_code_map(status):
     if status == "WORKOUT_NOT_FOUND":
         return 404
-    elif status == "WORKOUT_ALREADY_COMPLETED" or "WORKOUT_NOT_PAUSED":
+    elif status in {
+        "WORKOUT_ALREADY_COMPLETED",
+        "WORKOUT_NOT_PAUSED",
+        "WORKOUT_ALREADY_PAUSED",
+    }:
         return 409
+    elif status == "BAD_REQUEST":
+        return 400
     return 200
 
 
@@ -38,6 +44,7 @@ async def start_workout(
         200: {"model": WorkoutModifyResponse},
         404: {"model": WorkoutModifyResponse},
         409: {"model": WorkoutModifyResponse},
+        400: {"model": WorkoutModifyResponse},
     },
 )
 async def stop_workout(workout_id: int, workoutModifyRequest: WorkoutModifyRequest):
