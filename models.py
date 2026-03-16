@@ -25,10 +25,12 @@ class Locations(Base):
     workout_id: Mapped[int] = mapped_column(ForeignKey("workout.id"))
     latitude: Mapped[float]
     longitude: Mapped[float]
-    time: Mapped[datetime] = mapped_column(TIMESTAMP)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP)
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
-    deleted_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
+    time: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
+    deleted_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
 
     @classmethod
     @manage_connection
@@ -68,13 +70,21 @@ class Workouts(Base):
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
     # can delete this status column
     status: Mapped[bool] = mapped_column(Boolean, server_default=sqlalchemy.sql.true())
-    started_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
-    stopped_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP, nullable=False, server_default=func.now()
+    started_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False
     )
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
-    deleted_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
+    stopped_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+    deleted_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
 
     @classmethod
     @manage_connection
@@ -125,31 +135,31 @@ class PauseAndResumeLogs(Base):
     __tablename__ = "pause_resume_logs"
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
     workout_id: Mapped[int] = mapped_column(ForeignKey("workout.id"))
-    paused_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
-    resumed_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP, nullable=False, server_default=func.now()
+    paused_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False
     )
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
-    deleted_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=True)
+    resumed_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+    deleted_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
 
     @classmethod
     @manage_connection
     def pause_workout(cls, connection, workout_id, time):
-        logs = connection.execute(
+        connection.execute(
             text(
-                "SELECT * FROM pause_resume_logs WHERE workout_id=:workout_id AND resumed_at IS NULL"
+                "INSERT INTO pause_resume_logs(workout_id, paused_at) VALUES(:workout_id, :paused_at)"
             ),
-            {"workout_id": workout_id},
+            {"workout_id": workout_id, "paused_at": time},
         )
-        logs = logs.all()
-        if len(logs) == 0:
-            connection.execute(
-                text(
-                    "INSERT INTO pause_resume_logs(workout_id, paused_at) VALUES(:workout_id, :paused_at)"
-                ),
-                {"workout_id": workout_id, "paused_at": time},
-            )
 
     @classmethod
     @manage_connection
@@ -169,5 +179,4 @@ class PauseAndResumeLogs(Base):
             {"workout_id": workout_id},
         )
         logs = [log._mapping for log in logs]
-        print("AAAA", logs)
         return logs
