@@ -5,6 +5,18 @@ import asyncio
 from datetime import datetime
 
 
+def pause_workout(workout_id, time):
+    pass
+
+
+def resume_workout(workout_id, time):
+    pass
+
+
+def stop_workout(workout_id, time):
+    pass
+
+
 def modify_workout(workout_id, status, time):
     workout = Workouts.get_workout(workout_id)
 
@@ -16,14 +28,37 @@ def modify_workout(workout_id, status, time):
         }
 
     elif status == "stop":
+        if workout["stopped_at"] is not None:
+            return {
+                "success": False,
+                "error": f"Workout with id: {workout_id} has already been stopped.",
+                "status": "WORKOUT_ALREADY_COMPLETED",
+            }
+        logs = PauseAndResumeLogs.get_logs(workout_id)
+        resumed_times = [log["resumed_at"] for log in logs]
+        for resumed_time in resumed_times:
+            if resumed_time > time:
+                return {
+                    "success": False,
+                    "error": f"Workout with id: {workout_id} cannot be stopped.",
+                    "status": "BAD_REQUEST",
+                }
         Workouts.stop_workout(workout_id, time)
         return {"success": True, "status": "WORKOUT_STOPPED"}
 
     elif status == "pause":
+        logs = PauseAndResumeLogs.get_logs(workout_id)
+        active_sessions = [log for log in logs if log["resumed_at"] is None]
+        if active_sessions != []:
+            return {
+                "success": False,
+                "error": f"Workout with id: {workout_id} has already been paused.",
+                "status": "WORKOUT_ALREADY_PAUSED",
+            }
         PauseAndResumeLogs.pause_workout(workout_id, time)
         return {"success": True, "status": "WORKOUT_PAUSED"}
 
-    elif status == "resume":
+    else:
         logs = PauseAndResumeLogs.get_logs(workout_id)
         valid_ids = [
             log["id"]
@@ -40,13 +75,6 @@ def modify_workout(workout_id, status, time):
         for id in valid_ids:
             PauseAndResumeLogs.resume_workout(id, time)
         return {"success": True, "status": "WORKOUT_RESUMED"}
-
-    elif workout["stopped_at"] is not None:
-        return {
-            "success": False,
-            "error": f"Workout with id: {workout_id} is already completed.",
-            "status": "WORKOUT_ALREADY_COMPLETED",
-        }
 
 
 def store_location(location):
