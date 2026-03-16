@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import JSONResponse
 from models import Workouts
-from services import handle_message, update_metrics, modify_workout
+from services import handle_message, update_metrics, route_modify_workout
 from schemas import (
     Message,
     WorkoutStartResponse,
@@ -47,9 +47,9 @@ async def start_workout(
         400: {"model": WorkoutModifyResponse},
     },
 )
-async def stop_workout(workout_id: int, workoutModifyRequest: WorkoutModifyRequest):
+async def modify_workout(workout_id: int, workoutModifyRequest: WorkoutModifyRequest):
     status, time = workoutModifyRequest.status, workoutModifyRequest.modified_at
-    response_body = modify_workout(workout_id, status, time)
+    response_body = route_modify_workout(workout_id, status, time)
     return JSONResponse(
         status_code=status_code_map(response_body["status"]), content=response_body
     )

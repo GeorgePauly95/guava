@@ -5,19 +5,69 @@ import asyncio
 from datetime import datetime
 
 
+def check_log_conflict(log, time):
+    if log["paused_at"] < time and log["resumed_at"] > time:
+        return True
+    return False
+
+
 def pause_workout(workout_id, time):
-    pass
+    logs = PauseAndResumeLogs.get_logs(workout_id)
+    active_sessions = [
+        log
+        for log in logs
+        if log["resumed_at"] is None or check_log_conflict(log, time)
+    ]
+    if active_sessions != []:
+        return {
+            "success": False,
+            "error": f"Workout with id: {workout_id} has already been paused.",
+            "status": "WORKOUT_ALREADY_PAUSED",
+        }
+    PauseAndResumeLogs.pause_workout(workout_id, time)
+    return {"success": True, "status": "WORKOUT_PAUSED"}
 
 
 def resume_workout(workout_id, time):
-    pass
+    logs = PauseAndResumeLogs.get_logs(workout_id)
+    valid_ids = [
+        log["id"]
+        for log in logs
+        if log["resumed_at"] is None and time > log["paused_at"]
+    ]
+    if valid_ids == []:
+        return {
+            "success": False,
+            "error": f"Workout with id: {workout_id} is not currently paused.",
+            "status": "WORKOUT_NOT_PAUSED",
+        }
+
+    for id in valid_ids:
+        PauseAndResumeLogs.resume_workout(id, time)
+    return {"success": True, "status": "WORKOUT_RESUMED"}
 
 
-def stop_workout(workout_id, time):
-    pass
+def stop_workout(workout_id, workout, time):
+    if workout["stopped_at"] is not None:
+        return {
+            "success": False,
+            "error": f"Workout with id: {workout_id} has already been stopped.",
+            "status": "WORKOUT_ALREADY_COMPLETED",
+        }
+    logs = PauseAndResumeLogs.get_logs(workout_id)
+    resumed_times = [log["resumed_at"] for log in logs]
+    for resumed_time in resumed_times:
+        if resumed_time > time:
+            return {
+                "success": False,
+                "error": f"Workout with id: {workout_id} cannot be stopped.",
+                "status": "BAD_REQUEST",
+            }
+    Workouts.stop_workout(workout_id, time)
+    return {"success": True, "status": "WORKOUT_STOPPED"}
 
 
-def modify_workout(workout_id, status, time):
+def route_modify_workout(workout_id, status, time):
     workout = Workouts.get_workout(workout_id)
 
     if workout is None or workout["started_at"] > time:
@@ -28,53 +78,11 @@ def modify_workout(workout_id, status, time):
         }
 
     elif status == "stop":
-        if workout["stopped_at"] is not None:
-            return {
-                "success": False,
-                "error": f"Workout with id: {workout_id} has already been stopped.",
-                "status": "WORKOUT_ALREADY_COMPLETED",
-            }
-        logs = PauseAndResumeLogs.get_logs(workout_id)
-        resumed_times = [log["resumed_at"] for log in logs]
-        for resumed_time in resumed_times:
-            if resumed_time > time:
-                return {
-                    "success": False,
-                    "error": f"Workout with id: {workout_id} cannot be stopped.",
-                    "status": "BAD_REQUEST",
-                }
-        Workouts.stop_workout(workout_id, time)
-        return {"success": True, "status": "WORKOUT_STOPPED"}
-
+        return stop_workout(workout_id, workout, time)
     elif status == "pause":
-        logs = PauseAndResumeLogs.get_logs(workout_id)
-        active_sessions = [log for log in logs if log["resumed_at"] is None]
-        if active_sessions != []:
-            return {
-                "success": False,
-                "error": f"Workout with id: {workout_id} has already been paused.",
-                "status": "WORKOUT_ALREADY_PAUSED",
-            }
-        PauseAndResumeLogs.pause_workout(workout_id, time)
-        return {"success": True, "status": "WORKOUT_PAUSED"}
-
+        return pause_workout(workout_id, time)
     else:
-        logs = PauseAndResumeLogs.get_logs(workout_id)
-        valid_ids = [
-            log["id"]
-            for log in logs
-            if log["resumed_at"] is None and time > log["paused_at"]
-        ]
-        if valid_ids == []:
-            return {
-                "success": False,
-                "error": f"Workout with id: {workout_id} is not currently paused.",
-                "status": "WORKOUT_NOT_PAUSED",
-            }
-
-        for id in valid_ids:
-            PauseAndResumeLogs.resume_workout(id, time)
-        return {"success": True, "status": "WORKOUT_RESUMED"}
+        return resume_workout(workout_id, time)
 
 
 def store_location(location):
