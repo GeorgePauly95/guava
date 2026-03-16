@@ -1,6 +1,5 @@
 from haversine import haversine
 from models import Locations, Workouts, PauseAndResumeLogs
-from schemas import WorkoutModifyResponse
 import json
 import asyncio
 from datetime import datetime
@@ -8,30 +7,46 @@ from datetime import datetime
 
 def modify_workout(workout_id, status, time):
     workout = Workouts.get_workout(workout_id)
+
     if workout is None or workout["started_at"] > time:
-        return WorkoutModifyResponse(
-            success=False,
-            error=f"Workout with id: {workout_id} doesn't exist.",
-            status="WORKOUT_NOT_FOUND",
-        )
+        return {
+            "success": False,
+            "error": f"Workout with id: {workout_id} doesn't exist.",
+            "status": "WORKOUT_NOT_FOUND",
+        }
 
-    if workout["stopped_at"] is not None:
-        return WorkoutModifyResponse(
-            success=False,
-            error=f"Workout with id: {workout_id} is already completed.",
-            status="WORKOUT_ALREADY_COMPLETED",
-        )
-
-    if status == "stop":
+    elif status == "stop":
         Workouts.stop_workout(workout_id, time)
-        return WorkoutModifyResponse(success=True, status="WORKOUT_STOPPED")
+        return {"success": True, "status": "WORKOUT_STOPPED"}
 
     elif status == "pause":
         PauseAndResumeLogs.pause_workout(workout_id, time)
-        return WorkoutModifyResponse(success=True, status="WORKOUT_PAUSED")
-    else:
-        PauseAndResumeLogs.resume_workout(workout_id, time)
-        return WorkoutModifyResponse(success=True, status="WORKOUT_RESUMED")
+        return {"success": True, "status": "WORKOUT_PAUSED"}
+
+    elif status == "resume":
+        logs = PauseAndResumeLogs.get_logs(workout_id)
+        valid_ids = [
+            log["id"]
+            for log in logs
+            if log["resumed_at"] is None and time > log["paused_at"]
+        ]
+        if valid_ids == []:
+            return {
+                "success": False,
+                "error": f"Workout with id: {workout_id} is not currently paused.",
+                "status": "WORKOUT_NOT_PAUSED",
+            }
+
+        for id in valid_ids:
+            PauseAndResumeLogs.resume_workout(id, time)
+        return {"success": True, "status": "WORKOUT_RESUMED"}
+
+    elif workout["stopped_at"] is not None:
+        return {
+            "success": False,
+            "error": f"Workout with id: {workout_id} is already completed.",
+            "status": "WORKOUT_ALREADY_COMPLETED",
+        }
 
 
 def store_location(location):
@@ -40,13 +55,16 @@ def store_location(location):
 
         if workout is None:
             return False
+
         elif datetime.fromisoformat(location["time"]) < workout["started_at"]:
             return False
+
         elif (
             workout["stopped_at"] is not None
             and datetime.fromisoformat(location["time"]) > workout["stopped_at"]
         ):
             return False
+
         return True
 
     workout_id = location["workout_id"]
@@ -98,7 +116,6 @@ def validate_locations(locations, workout_id):
         return True
 
     validated_locations = list(filter(validate_location, locations))
-    print(validated_locations)
     return validated_locations
 
 
