@@ -181,4 +181,6 @@ async def update_metrics(websocket):
         if workout_ids is not None:
             for workout_id in workout_ids:
                 metrics = await get_metrics(workout_id)
-                await websocket.send_text(json.dumps(metrics))
+                if metrics is not None:
+                    await websocket.send_text(json.dumps(metrics))
+                print(f"Workout with id: {workout_id} has no location datapoints yet.")
