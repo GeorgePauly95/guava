@@ -1,5 +1,6 @@
-from fastapi import FastAPI, WebSocket
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, WebSocket, Request
+from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.exceptions import RequestValidationError
 from models import Workouts
 from services import handle_message, update_metrics, route_modify_workout
 from schemas import (
@@ -16,6 +17,14 @@ import asyncio
 app = FastAPI()
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    message = ""
+    for error in exc.errors():
+        message += f"\nField: {error['loc']}\nError: {error['msg']}\nRequest body sent: {await request.json()}"
+    return PlainTextResponse(message, status_code=400)
+
+
 @app.post("/api/workouts")
 async def start_workout(
     workoutStartRequest: WorkoutStartRequest,
@@ -29,9 +38,9 @@ async def start_workout(
     "/api/workouts/{workout_id}/status",
     responses={
         200: {"model": WorkoutModifyResponse},
+        400: {"model": WorkoutModifyResponse},
         404: {"model": WorkoutModifyResponse},
         409: {"model": WorkoutModifyResponse},
-        400: {"model": WorkoutModifyResponse},
     },
 )
 async def modify_workout(workout_id: int, workoutModifyRequest: WorkoutModifyRequest):
