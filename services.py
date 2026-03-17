@@ -55,9 +55,14 @@ def stop_workout(workout_id, workout, time):
             "status": "WORKOUT_ALREADY_COMPLETED",
         }
     logs = PauseAndResumeLogs.get_logs(workout_id)
-    resumed_times = [log["resumed_at"] for log in logs]
-    for resumed_time in resumed_times:
-        if resumed_time > time:
+    for log in logs:
+        if log["resumed_at"] is None and log["paused_at"] > time:
+            return {
+                "success": False,
+                "error": f"Workout with id: {workout_id} cannot be stopped.",
+                "status": "BAD_REQUEST",
+            }
+        elif log["resumed_at"] is not None and log["resumed_at"] > time:
             return {
                 "success": False,
                 "error": f"Workout with id: {workout_id} cannot be stopped.",
