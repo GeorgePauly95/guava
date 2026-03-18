@@ -27,7 +27,9 @@ class Locations(Base):
     longitude: Mapped[float]
     time: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
     deleted_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=True
     )
