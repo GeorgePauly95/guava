@@ -35,7 +35,7 @@ class Locations(Base):
     @classmethod
     @manage_connection
     def store_location(cls, connection, location):
-        latitude, longitude, time, workout_id = location.values()
+        latitude, longitude, time, workout_id, *rest = location.values()
         connection.execute(
             text(
                 """INSERT INTO location(latitude, longitude, time, workout_id)
