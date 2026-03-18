@@ -68,8 +68,6 @@ class Locations(Base):
 class Workouts(Base):
     __tablename__ = "workout"
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
-    # can delete this status column
-    status: Mapped[bool] = mapped_column(Boolean, server_default=sqlalchemy.sql.true())
     started_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False
     )
