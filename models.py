@@ -35,7 +35,18 @@ class Locations(Base):
     @classmethod
     @manage_connection
     def store_location(cls, connection, location):
-        latitude, longitude, time, workout_id, *rest = location.values()
+        # destructure dictionary not tuple, now the order
+        (
+            latitude,
+            longitude,
+            time,
+            workout_id,
+        ) = (
+            location["latitude"],
+            location["longitude"],
+            location["time"],
+            location["workout_id"],
+        )
         connection.execute(
             text(
                 """INSERT INTO location(latitude, longitude, time, workout_id)
