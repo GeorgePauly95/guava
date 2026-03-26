@@ -18,6 +18,7 @@ def pause_workout(workout_id, time):
         for log in logs
         if log["resumed_at"] is None or check_log_conflict(log, time)
     ]
+    # use len function to check if the array is empty
     if active_sessions != []:
         return {
             "success": False,
@@ -66,6 +67,8 @@ def stop_workout(workout_id, workout, time):
             return {
                 "success": False,
                 "error": f"Workout with id: {workout_id} cannot be stopped.",
+                # error_message not error
+                # outcome_status not status, and service layer should not know 'REQUEST'
                 "status": "BAD_REQUEST",
             }
     Workouts.stop_workout(workout_id, time)
@@ -81,7 +84,12 @@ def route_modify_workout(workout_id, status, time):
             "error": f"Workout with id: {workout_id} doesn't exist.",
             "status": "WORKOUT_NOT_FOUND",
         }
-
+    elif workout["stopped_at"] is not None and workout["stopped_at"] < time:
+        return {
+            "success": False,
+            "error": f"Workout with id: {workout_id} is already stopped.",
+            "status": "BAD_REQUEST",
+        }
     elif status == "stop":
         return stop_workout(workout_id, workout, time)
     elif status == "pause":

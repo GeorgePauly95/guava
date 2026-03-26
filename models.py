@@ -1,7 +1,6 @@
-import sqlalchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import TIMESTAMP
-from sqlalchemy import Integer, Identity, text, Boolean, func, ForeignKey
+from sqlalchemy import Integer, Identity, text, func, ForeignKey
 from datetime import datetime
 from engine import engine
 
@@ -112,7 +111,7 @@ class Workouts(Base):
     def stop_workout(cls, connection, workout_id, stopped_at):
         workout = connection.execute(
             text(
-                """UPDATE workout SET status=True, stopped_at=:stopped_at, updated_at=now()
+                """UPDATE workout SET stopped_at=:stopped_at, updated_at=now()
                 WHERE id=:workout_id AND stopped_at IS NULL"""
             ),
             {"workout_id": workout_id, "stopped_at": stopped_at},
