@@ -36,7 +36,6 @@ class Locations(Base):
     @classmethod
     @manage_connection
     def store_location(cls, connection, location):
-        # destructure dictionary not tuple, now the order
         (
             latitude,
             longitude,
@@ -95,13 +94,16 @@ class Workouts(Base):
     deleted_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=True
     )
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
 
     @classmethod
     @manage_connection
-    def create_workout(cls, connection, started_at):
+    def create_workout(cls, connection, user_id, started_at):
         workout = connection.execute(
-            text("INSERT INTO workout(started_at) VALUES(:started_at) RETURNING id"),
-            {"started_at": started_at},
+            text(
+                "INSERT INTO workout(user_id, started_at) VALUES(:user_id, :started_at) RETURNING id"
+            ),
+            {"user_id": user_id, "started_at": started_at},
         )
         workout_id = int([id._mapping for id in workout][0]["id"])
         return workout_id
@@ -190,3 +192,30 @@ class PauseAndResumeLogs(Base):
         )
         logs = [log._mapping for log in logs]
         return logs
+
+
+# TODO: user is a reserved keyword in postgres. modify the table name to users.
+class Users(Base):
+    __tablename__ = "user"
+    id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
+
+    username: Mapped[str]
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    deleted_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+
+    @classmethod
+    @manage_connection
+    def create_user(cls, connection, username):
+        user = connection.execute(
+            text('INSERT INTO "user"(username) VALUES(:username) RETURNING id'),
+            {"username": username},
+        )
+
+        user_id = int([id._mapping for id in user][0]["id"])
+        print("user id:", user_id)
+        return user_id
