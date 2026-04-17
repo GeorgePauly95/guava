@@ -207,6 +207,7 @@ class Users(Base):
     deleted_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=True
     )
+    google_id: Mapped[str] = mapped_column(nullable=True, unique=True)
 
     @classmethod
     @manage_connection
@@ -219,3 +220,20 @@ class Users(Base):
         user_id = int([id._mapping for id in user][0]["id"])
         print("user id:", user_id)
         return user_id
+
+    @classmethod
+    @manage_connection
+    def get_or_create_by_google_id(cls, connection, google_id, username):
+        user = connection.execute(
+            text('SELECT id FROM "user" where google_id=:google_id'),
+            {"google_id": google_id},
+        ).fetchone()
+        if user:
+            return user._mapping["id"]
+        new_user = connection.execute(
+            text(
+                'INSERT INTO "user"("username", "google_id") VALUES(:username, :google_id) RETURNING id'
+            ),
+            {"username": username, "google_id": google_id},
+        ).fetchone()
+        return new_user._mapping["id"]
