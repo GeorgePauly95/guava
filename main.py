@@ -1,8 +1,9 @@
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
-from models import Workouts
-from services import handle_message, update_metrics, route_modify_workout
+from fastapi.security import HTTPBearer
+from models import Workouts, Users
+from services import handle_message, update_metrics, route_modify_workout, create_jwt
 from schemas import (
     Message,
     WorkoutStartResponse,
@@ -19,11 +20,17 @@ from auth import (
     google_user_info_url,
 )
 from utils import status_code_map
+from dotenv import load_dotenv
 import json
 import asyncio
 import httpx
+import os
+
+load_dotenv()
 
 app = FastAPI()
+
+secret_key = os.getenv("SECRET_KEY").encode("utf-8")
 
 
 @app.exception_handler(RequestValidationError)
@@ -32,6 +39,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     for error in exc.errors():
         message += f"\nField: {error['loc']}\nError: {error['msg']}\nRequest body sent: {await request.json()}"
     return PlainTextResponse(message, status_code=400)
+
+
+@app.get("/")
+async def home(token: str | None):
+    return {"token": token}
 
 
 @app.get("/api/login")
@@ -57,21 +69,35 @@ async def google_auth(request: Request):
         google_user_info_url, headers={"Authorization": f"Bearer {access_token}"}
     )
     user_info_response_body = user_info_response.json()
-    print("user_info:", user_info_response_body)
-    return
+    google_id = user_info_response_body["id"]
+    username = user_info_response_body["email"]
+    user_id = Users.get_or_create_by_google_id(google_id, username)
+    jwt = create_jwt(user_id, secret_key)
+    return RedirectResponse(f"http://localhost:8000?token={jwt}")
 
 
-@app.post("/api/workouts")
+# TODO: given username return user_id
+# TODO: use pydantic model instead of using request class
+@app.post("/api/users")
+async def create_user(request: Request):
+    request_body = await request.json()
+    username = request_body["username"]
+    user_id = Users.create_user(username)
+    return user_id
+
+
+@app.post("/api/users/{user_id}/workouts")
 async def start_workout(
+    user_id: int,
     workoutStartRequest: WorkoutStartRequest,
 ) -> WorkoutStartResponse:
     started_at = workoutStartRequest.started_at
-    workout_id = Workouts.create_workout(started_at)
+    workout_id = Workouts.create_workout(user_id, started_at)
     return WorkoutStartResponse(id=workout_id)
 
 
 @app.patch(
-    "/api/workouts/{workout_id}/status",
+    "/api/users/{user_id}/workouts/{workout_id}/status",
     responses={
         200: {"model": WorkoutModifyResponse},
         400: {"model": WorkoutModifyResponse},
@@ -79,9 +105,11 @@ async def start_workout(
         409: {"model": WorkoutModifyResponse},
     },
 )
-async def modify_workout(workout_id: int, workoutModifyRequest: WorkoutModifyRequest):
+async def modify_workout(
+    user_id: int, workout_id: int, workoutModifyRequest: WorkoutModifyRequest
+):
     status, time = workoutModifyRequest.status, workoutModifyRequest.modified_at
-    response_body = route_modify_workout(workout_id, status, time)
+    response_body = route_modify_workout(user_id, workout_id, status, time)
     return JSONResponse(
         status_code=status_code_map(response_body["status"]), content=response_body
     )
@@ -101,6 +129,9 @@ async def handle_ws_messages(websocket: WebSocket):
                 print(e)
                 break
 
+    # TODO: create this task in the global scope.
+    # update metrics can be called for all clients instead of being
+    # called for each client separately.
     task = asyncio.create_task(update_metrics(websocket))
     await receive_locations()
     task.cancel()
