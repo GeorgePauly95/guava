@@ -100,7 +100,7 @@ async def google_auth(request: Request):
     username = user_info_response_body["email"]
     user_id = Users.get_or_create_by_google_id(google_id, username)
     jwt = create_jwt(user_id, secret_key)
-    return RedirectResponse(f"http://localhost:8000?token={jwt}")
+    return RedirectResponse(f"http://{state}?token={jwt}")
 
 
 # TODO: given username return user_id
