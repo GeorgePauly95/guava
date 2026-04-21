@@ -1,9 +1,15 @@
-from fastapi import FastAPI, WebSocket, Request
+from fastapi import FastAPI, WebSocket, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from models import Workouts, Users
-from services import handle_message, update_metrics, route_modify_workout, create_jwt
+from services import (
+    handle_message,
+    update_metrics,
+    route_modify_workout,
+    create_jwt,
+    verify_jwt,
+)
 from schemas import (
     Message,
     WorkoutStartResponse,
@@ -21,6 +27,7 @@ from auth import (
 )
 from utils import status_code_map
 from dotenv import load_dotenv
+from typing import Annotated
 import json
 import asyncio
 import httpx
@@ -32,6 +39,18 @@ app = FastAPI()
 
 secret_key = os.getenv("SECRET_KEY").encode("utf-8")
 
+http_bearer = HTTPBearer()
+
+
+def security(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(http_bearer)],
+):
+    jwt = credentials.credentials
+    user_id = verify_jwt(jwt)
+    if user_id:
+        return user_id
+    raise HTTPException(status_code=401)
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -42,8 +61,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 @app.get("/")
-async def home(token: str | None):
-    return {"token": token}
+async def home(user_id: Annotated[int, Depends(security)]):
+    return {"user_id": user_id}
 
 
 @app.get("/api/login")
