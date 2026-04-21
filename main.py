@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, Request, Depends, HTTPException
+from fastapi import FastAPI, WebSocket, Request, Depends, HTTPException, Header
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -65,15 +65,22 @@ async def home(user_id: Annotated[int, Depends(security)]):
     return {"user_id": user_id}
 
 
+# /accounts.google.com/o/oauth2/v2/auth?
+# client_id=1089536154542-231b6e3fidtm53q83mu7759lqqau3f1m.apps.googleusercontent.com%0A&
+# redirect_uri=https://guava-3a7j.onrender.com/auth/google/callback&scope=email&response_type=code
+
+
 @app.get("/api/login")
-async def login_user():
-    print("OAuth URL:", google_oauth_url)
-    return RedirectResponse(google_oauth_url, status_code=302)
+async def login_user(host: Annotated[str, Header()]):
+    google_oauth_url_with_state = google_oauth_url + f"&state={host}"
+    return RedirectResponse(google_oauth_url_with_state, status_code=302)
 
 
 @app.get("/auth/google/callback")
 async def google_auth(request: Request):
     code = request.query_params.get("code")
+    state = request.query_params.get("state")
+    print("state:", state)
     request_body = {
         "code": code,
         "client_id": google_client_id,
@@ -87,6 +94,7 @@ async def google_auth(request: Request):
     user_info_response = httpx.get(
         google_user_info_url, headers={"Authorization": f"Bearer {access_token}"}
     )
+    print("user_info_response:", user_info_response)
     user_info_response_body = user_info_response.json()
     google_id = user_info_response_body["id"]
     username = user_info_response_body["email"]

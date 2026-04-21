@@ -39,10 +39,16 @@ def verify_jwt(jwt):
     message = encoded_header + "." + encoded_payload
     signature = hmac.new(secret_key, message.encode("utf-8"), hashlib.sha256).digest()
     encoded_signature = base64url_encode(signature)
+    print(
+        "encoded_signature:",
+        encoded_signature,
+        "\nreceived_signature:",
+        received_signature,
+    )
     if encoded_signature != received_signature:
-        return "Rejected"
+        return
     padded_payload = encoded_payload + "=" * (-len(encoded_payload) % 4)
     decoded_payload = json.loads(base64.urlsafe_b64decode(padded_payload))
     if decoded_payload["exp"] < datetime.now().timestamp():
-        return "Rejected"
+        return
     return decoded_payload["sub"]
