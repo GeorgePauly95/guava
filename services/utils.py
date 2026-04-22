@@ -28,6 +28,14 @@ def pad_payload(payload):
     return padded_payload
 
 
+def get_expiry_time(payload):
+    return payload["exp"]
+
+
+def get_user(payload):
+    return payload["sub"]
+
+
 def base64url_encode(data: bytes) -> str:
     encoded_data = base64.urlsafe_b64encode(data)
     return encoded_data.rstrip(b"=").decode("utf-8")

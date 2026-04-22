@@ -1,7 +1,14 @@
 import json
 import base64
 from datetime import datetime, timedelta
-from .utils import create_jwt_header, create_signature, base64url_encode, pad_payload
+from .utils import (
+    create_jwt_header,
+    create_signature,
+    base64url_encode,
+    get_expiry_time,
+    get_user,
+    pad_payload,
+)
 
 
 def create_jwt(user_id):
@@ -27,6 +34,6 @@ def verify_jwt(jwt):
         return
     padded_payload = pad_payload(encoded_payload)
     decoded_payload = json.loads(base64.urlsafe_b64decode(padded_payload))
-    if decoded_payload["exp"] < datetime.now().timestamp():
+    if get_expiry_time(decoded_payload) < datetime.now().timestamp():
         return
-    return decoded_payload["sub"]
+    return get_user(decoded_payload)
