@@ -9,6 +9,7 @@ from services import (
     security,
     handle_google_oauth,
     google_oauth_url,
+    attach_timestamp,
 )
 from schemas import (
     Message,
@@ -28,18 +29,19 @@ app = FastAPI()
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     message = ""
+    try:
+        request_body = await request.json()
+    except Exception as e:
+        print(f"{e}")
+        request_body = "No body"
     for error in exc.errors():
-        message += f"\nField: {error['loc']}\nError: {error['msg']}\nRequest body sent: {await request.json()}"
+        message += f"\nField: {error['loc']}\nError: {error['msg']}\nRequest body sent: {request_body}"
     return PlainTextResponse(message, status_code=400)
-
-
-@app.get("/")
-async def home(user_id: Annotated[int, Depends(security)]):
-    return {"user_id": user_id}
 
 
 @app.get("/api/login")
 async def login_user(redirect_url: str):
+    state = attach_timestamp(redirect_url)
     google_oauth_url_with_state = google_oauth_url + f"&state={redirect_url}"
     return RedirectResponse(google_oauth_url_with_state, status_code=302)
 

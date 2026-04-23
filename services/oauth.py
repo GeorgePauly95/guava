@@ -1,5 +1,6 @@
 import os
 import httpx
+from datetime import datetime
 from .authentication import create_jwt
 from models import Users
 
@@ -13,6 +14,10 @@ google_user_info_url = os.getenv("GOOGLE_USER_INFO_URL")
 google_oauth_url = f"{google_auth_url}?client_id={google_client_id}&redirect_uri={google_redirect_url}&scope={google_scope}&response_type=code"
 
 GRANT_TYPE = "authorization_code"
+
+
+def attach_timestamp(redirect_url: str) -> str:
+    return redirect_url + "+" + str(datetime.now().timestamp())
 
 
 def get_access_token(code):
@@ -37,6 +42,7 @@ def get_user_info(access_token):
 
 
 def get_google_id(user_info):
+    # print("google_id", user_info["id"])
     return user_info["id"]
 
 
