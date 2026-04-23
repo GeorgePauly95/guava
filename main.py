@@ -6,12 +6,9 @@ from services import (
     handle_message,
     update_metrics,
     route_modify_workout,
-    create_jwt,
     security,
-    get_access_token,
-    get_user_info,
-    get_google_email,
-    get_google_id,
+    handle_login,
+    google_oauth_url,
 )
 from schemas import (
     Message,
@@ -50,12 +47,9 @@ async def login_user(host: Annotated[str, Header()]):
 @app.get("/auth/google/callback")
 async def google_auth(request: Request):
     code, state = request.query_params.get("code"), request.query_params.get("state")
-    access_token = get_access_token(code)
-    user_info = get_user_info(access_token)
-    google_id, google_username = get_google_id(user_info), get_google_email(user_info)
-    user_id = Users.get_or_create_by_google_id(google_id, google_username)
-    jwt = create_jwt(user_id)
-    return RedirectResponse(f"http://{state}?token={jwt}")
+    jwt = handle_login(code)
+    headers = {"Authorization": jwt}
+    return RedirectResponse(f"http://{state}", headers=headers)
 
 
 # TODO: given username return user_id

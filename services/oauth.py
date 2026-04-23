@@ -1,5 +1,7 @@
 import os
 import httpx
+from .authentication import create_jwt
+from models import Users
 
 google_client_id = os.getenv("GOOGLE_CLIENT_ID")
 google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -40,3 +42,12 @@ def get_google_id(user_info):
 
 def get_google_email(user_info):
     return user_info["email"]
+
+
+def handle_login(code):
+    access_token = get_access_token(code)
+    user_info = get_user_info(access_token)
+    google_id, google_username = get_google_id(user_info), get_google_email(user_info)
+    user_id = Users.get_or_create_by_google_id(google_id, google_username)
+    jwt = create_jwt(user_id)
+    return jwt
