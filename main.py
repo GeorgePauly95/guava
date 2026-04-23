@@ -1,14 +1,17 @@
-from fastapi import FastAPI, WebSocket, Request, Depends, HTTPException, Header
+from fastapi import FastAPI, WebSocket, Request, Depends, Header
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from models import Workouts, Users
 from services import (
     handle_message,
     update_metrics,
     route_modify_workout,
     create_jwt,
-    verify_jwt,
+    security,
+    get_access_token,
+    get_user_info,
+    get_google_email,
+    get_google_id,
 )
 from schemas import (
     Message,
@@ -17,39 +20,12 @@ from schemas import (
     WorkoutModifyRequest,
     WorkoutModifyResponse,
 )
-from auth import (
-    google_oauth_url,
-    google_token_url,
-    google_client_id,
-    google_client_secret,
-    google_redirect_url,
-    google_user_info_url,
-)
 from utils import status_code_map
-from dotenv import load_dotenv
 from typing import Annotated
 import json
 import asyncio
-import httpx
-import os
-
-load_dotenv()
 
 app = FastAPI()
-
-secret_key = os.getenv("SECRET_KEY").encode("utf-8")
-
-http_bearer = HTTPBearer()
-
-
-def security(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(http_bearer)],
-):
-    jwt = credentials.credentials
-    user_id = verify_jwt(jwt)
-    if user_id:
-        return user_id
-    raise HTTPException(status_code=401)
 
 
 @app.exception_handler(RequestValidationError)
@@ -65,11 +41,6 @@ async def home(user_id: Annotated[int, Depends(security)]):
     return {"user_id": user_id}
 
 
-# /accounts.google.com/o/oauth2/v2/auth?
-# client_id=1089536154542-231b6e3fidtm53q83mu7759lqqau3f1m.apps.googleusercontent.com%0A&
-# redirect_uri=https://guava-3a7j.onrender.com/auth/google/callback&scope=email&response_type=code
-
-
 @app.get("/api/login")
 async def login_user(host: Annotated[str, Header()]):
     google_oauth_url_with_state = google_oauth_url + f"&state={host}"
@@ -78,28 +49,12 @@ async def login_user(host: Annotated[str, Header()]):
 
 @app.get("/auth/google/callback")
 async def google_auth(request: Request):
-    code = request.query_params.get("code")
-    state = request.query_params.get("state")
-    print("state:", state)
-    request_body = {
-        "code": code,
-        "client_id": google_client_id,
-        "client_secret": google_client_secret,
-        "redirect_uri": google_redirect_url,
-        "grant_type": "authorization_code",
-    }
-    token_response = httpx.post(google_token_url, data=request_body)
-    token_response_body = token_response.json()
-    access_token = token_response_body.get("access_token")
-    user_info_response = httpx.get(
-        google_user_info_url, headers={"Authorization": f"Bearer {access_token}"}
-    )
-    print("user_info_response:", user_info_response)
-    user_info_response_body = user_info_response.json()
-    google_id = user_info_response_body["id"]
-    username = user_info_response_body["email"]
-    user_id = Users.get_or_create_by_google_id(google_id, username)
-    jwt = create_jwt(user_id, secret_key)
+    code, state = request.query_params.get("code"), request.query_params.get("state")
+    access_token = get_access_token(code)
+    user_info = get_user_info(access_token)
+    google_id, google_username = get_google_id(user_info), get_google_email(user_info)
+    user_id = Users.get_or_create_by_google_id(google_id, google_username)
+    jwt = create_jwt(user_id)
     return RedirectResponse(f"http://{state}?token={jwt}")
 
 
@@ -113,9 +68,9 @@ async def create_user(request: Request):
     return user_id
 
 
-@app.post("/api/users/{user_id}/workouts")
+@app.post("/api/workouts")
 async def start_workout(
-    user_id: int,
+    user_id: Annotated[int, Depends(security)],
     workoutStartRequest: WorkoutStartRequest,
 ) -> WorkoutStartResponse:
     started_at = workoutStartRequest.started_at
@@ -133,7 +88,9 @@ async def start_workout(
     },
 )
 async def modify_workout(
-    user_id: int, workout_id: int, workoutModifyRequest: WorkoutModifyRequest
+    user_id: Annotated[int, Depends(security)],
+    workout_id: int,
+    workoutModifyRequest: WorkoutModifyRequest,
 ):
     status, time = workoutModifyRequest.status, workoutModifyRequest.modified_at
     response_body = route_modify_workout(user_id, workout_id, status, time)

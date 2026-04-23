@@ -1,3 +1,6 @@
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from typing import Annotated
 import json
 import base64
 from datetime import datetime, timedelta
@@ -9,6 +12,18 @@ from .utils import (
     get_user,
     pad_payload,
 )
+
+http_bearer = HTTPBearer()
+
+
+def security(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(http_bearer)],
+):
+    jwt = credentials.credentials
+    user_id = verify_jwt(jwt)
+    if user_id:
+        return user_id
+    raise HTTPException(status_code=401)
 
 
 def create_jwt(user_id):
