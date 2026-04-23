@@ -79,7 +79,7 @@ async def start_workout(
 
 
 @app.patch(
-    "/api/users/{user_id}/workouts/{workout_id}/status",
+    "/api/workouts/{workout_id}/status",
     responses={
         200: {"model": WorkoutModifyResponse},
         400: {"model": WorkoutModifyResponse},
