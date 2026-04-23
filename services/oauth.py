@@ -44,7 +44,7 @@ def get_google_email(user_info):
     return user_info["email"]
 
 
-def handle_login(code):
+def handle_google_oauth(code):
     access_token = get_access_token(code)
     user_info = get_user_info(access_token)
     google_id, google_username = get_google_id(user_info), get_google_email(user_info)
