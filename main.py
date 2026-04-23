@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, Request, Depends, Header
+from fastapi import FastAPI, WebSocket, Request, Depends
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from models import Workouts, Users
@@ -39,8 +39,8 @@ async def home(user_id: Annotated[int, Depends(security)]):
 
 
 @app.get("/api/login")
-async def login_user(host: Annotated[str, Header()]):
-    google_oauth_url_with_state = google_oauth_url + f"&state={host}"
+async def login_user(redirect_url: str):
+    google_oauth_url_with_state = google_oauth_url + f"&state={redirect_url}"
     return RedirectResponse(google_oauth_url_with_state, status_code=302)
 
 
