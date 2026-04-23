@@ -26,7 +26,7 @@ def security(
     raise HTTPException(status_code=401)
 
 
-def create_jwt(user_id):
+def create_jwt(user_id: int) -> str:
     header = create_jwt_header()
     payload = json.dumps(
         {"sub": user_id, "exp": (datetime.now() + timedelta(hours=24)).timestamp()}
@@ -41,7 +41,7 @@ def create_jwt(user_id):
     return jwt
 
 
-def verify_jwt(jwt):
+def verify_jwt(jwt: str) -> int | None:
     encoded_header, encoded_payload, received_signature = jwt.split(".")
     message = encoded_header + "." + encoded_payload
     encoded_signature = base64url_encode(create_signature(message))
