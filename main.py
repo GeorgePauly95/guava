@@ -11,6 +11,7 @@ from services import (
     google_oauth_url,
 )
 from schemas import (
+    Username,
     Message,
     WorkoutStartResponse,
     WorkoutStartRequest,
@@ -47,19 +48,16 @@ async def login_user(redirect_url: str):
 
 
 @app.get("/auth/google/callback")
-async def google_auth(request: Request):
-    code, state = request.query_params.get("code"), request.query_params.get("state")
+async def google_auth(code: str, state: str):
     redirect_url = get_redirect_url(state)
     jwt = handle_google_oauth(code)
     headers = {"Authorization": jwt}
     return RedirectResponse(f"http://{redirect_url}", headers=headers)
 
 
-# TODO: use pydantic model instead of using request class
 @app.post("/api/users")
-async def create_user(request: Request):
-    request_body = await request.json()
-    username = request_body["username"]
+async def create_user(username: Username):
+    username = username.username
     user_id = Users.create_user(username)
     return user_id
 

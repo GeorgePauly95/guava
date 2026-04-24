@@ -4,6 +4,10 @@ from enum import Enum
 from typing import Optional
 
 
+class Username(BaseModel):
+    username: str
+
+
 class Location(BaseModel):
     latitude: float
     longitude: float
