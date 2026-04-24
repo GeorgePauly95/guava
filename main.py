@@ -9,7 +9,6 @@ from services import (
     security,
     handle_google_oauth,
     google_oauth_url,
-    attach_timestamp,
 )
 from schemas import (
     Message,
@@ -18,6 +17,7 @@ from schemas import (
     WorkoutModifyRequest,
     WorkoutModifyResponse,
 )
+from services.oauth import encrypt_state, get_redirect_url
 from utils import status_code_map
 from typing import Annotated
 import json
@@ -41,17 +41,18 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.get("/api/login")
 async def login_user(redirect_url: str):
-    state = attach_timestamp(redirect_url)
-    google_oauth_url_with_state = google_oauth_url + f"&state={redirect_url}"
+    state = encrypt_state(redirect_url)
+    google_oauth_url_with_state = google_oauth_url + f"&state={state}"
     return RedirectResponse(google_oauth_url_with_state, status_code=302)
 
 
 @app.get("/auth/google/callback")
 async def google_auth(request: Request):
     code, state = request.query_params.get("code"), request.query_params.get("state")
+    redirect_url = get_redirect_url(state)
     jwt = handle_google_oauth(code)
     headers = {"Authorization": jwt}
-    return RedirectResponse(f"http://{state}", headers=headers)
+    return RedirectResponse(f"http://{redirect_url}", headers=headers)
 
 
 # TODO: use pydantic model instead of using request class
