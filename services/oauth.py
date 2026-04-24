@@ -36,7 +36,7 @@ def get_redirect_url(encrypted_state: str) -> str:
     return redirect_url
 
 
-def get_access_token(code):
+def get_access_token(code: str) -> str:
     request_body = {
         "code": code,
         "client_id": google_client_id,
@@ -50,22 +50,22 @@ def get_access_token(code):
     return access_token
 
 
-def get_user_info(access_token):
+def get_user_info(access_token: str) -> dict:
     user_info_response = httpx.get(
         google_user_info_url, headers={"Authorization": f"Bearer {access_token}"}
     )
     return user_info_response.json()
 
 
-def get_google_id(user_info):
+def get_google_id(user_info: dict) -> str:
     return user_info["id"]
 
 
-def get_google_email(user_info):
+def get_google_email(user_info: dict) -> str:
     return user_info["email"]
 
 
-def handle_google_oauth(code):
+def handle_google_oauth(code: str) -> str:
     access_token = get_access_token(code)
     user_info = get_user_info(access_token)
     google_id, google_username = get_google_id(user_info), get_google_email(user_info)
