@@ -44,7 +44,7 @@ async def login_user(redirect_url: str):
 async def google_auth(code: str, state: str):
     redirect_url = get_redirect_url(state)
     jwt = handle_google_oauth(code)
-    headers = {"Authorization": jwt}
+    headers = {"Authorization": f"Bearer {jwt}"}
     response = RedirectResponse(f"{redirect_url}", headers=headers)
     return response
 
