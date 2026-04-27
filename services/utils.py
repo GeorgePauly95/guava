@@ -29,11 +29,11 @@ def pad_payload(payload):
 
 
 def get_expiry_time(payload):
-    return payload["exp"]
+    return payload.get("exp")
 
 
 def get_user(payload):
-    return payload["sub"]
+    return payload.get("sub")
 
 
 def base64url_encode(data: bytes) -> str:
