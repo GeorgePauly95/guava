@@ -134,6 +134,18 @@ class Workouts(Base):
 
     @classmethod
     @manage_connection
+    def get_workouts(cls, connection, user_id):
+        workouts = connection.execute(
+            text("SELECT * FROM workout WHERE user_id=:user_id"),
+            {"user_id": user_id},
+        )
+        workouts = [workout._mapping for workout in workouts]
+        if len(workouts) == 0:
+            return
+        return workouts
+
+    @classmethod
+    @manage_connection
     def get_active_workouts(cls, connection):
         workouts = connection.execute(
             text("SELECT id FROM workout WHERE stopped_at IS NULL")
@@ -218,7 +230,6 @@ class Users(Base):
         )
 
         user_id = int([id._mapping for id in user][0]["id"])
-        print("user id:", user_id)
         return user_id
 
     @classmethod
