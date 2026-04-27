@@ -45,7 +45,8 @@ async def google_auth(code: str, state: str):
     redirect_url = get_redirect_url(state)
     jwt = handle_google_oauth(code)
     headers = {"Authorization": jwt}
-    return RedirectResponse(f"http://{redirect_url}", headers=headers)
+    response = RedirectResponse(f"{redirect_url}", headers=headers)
+    return response
 
 
 @app.websocket("/ws")
