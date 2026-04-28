@@ -33,14 +33,22 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return PlainTextResponse(message, status_code=400)
 
 
-@app.get("/api/login")
+@app.get("/api/v1/login")
 async def login_user(redirect_url: str):
     state = encrypt_state(redirect_url)
     google_oauth_url_with_state = google_oauth_url + f"&state={state}"
     return RedirectResponse(google_oauth_url_with_state, status_code=302)
 
 
-@app.get("/auth/google/callback")
+@app.get("/api/v0/auth/google/callback")
+async def google_auth_v0(code: str, state: str):
+    redirect_url = get_redirect_url(state)
+    jwt = handle_google_oauth(code)
+    response = RedirectResponse(f"{redirect_url}?token={jwt}")
+    return response
+
+
+@app.get("/api/v1/auth/google/callback")
 async def google_auth(code: str, state: str):
     redirect_url = get_redirect_url(state)
     jwt = handle_google_oauth(code)
