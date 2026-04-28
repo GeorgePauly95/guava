@@ -17,8 +17,8 @@ User_id = Annotated[int, Depends(security)]
 
 @workout.get("/")
 async def get_workouts(user_id: User_id):
-    Workouts.get_workouts(user_id)
-    pass
+    workouts = Workouts.get_workouts(user_id)
+    return workouts
 
 
 @workout.post("/")
