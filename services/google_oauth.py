@@ -1,21 +1,17 @@
 import os
-import httpx
 from datetime import datetime
 from .authentication import create_jwt
+from utils import get_user_info, get_token_response
 from models import Users
-from cryptography.fernet import Fernet
 
 google_client_id = os.getenv("GOOGLE_CLIENT_ID")
 google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
 google_scope = os.getenv("GOOGLE_SCOPE")
 google_redirect_url = os.getenv("REDIRECT_URL")
-google_auth_url = os.getenv("GOOGLE_AUTH_URL")
 google_token_url = os.getenv("GOOGLE_TOKEN_URL")
-google_user_info_url = os.getenv("GOOGLE_USER_INFO_URL")
+google_auth_url = os.getenv("GOOGLE_AUTH_URL")
 google_oauth_url = f"{google_auth_url}?client_id={google_client_id}&redirect_uri={google_redirect_url}&scope={google_scope}&response_type=code"
-state_key = os.getenv("STATE_KEY")
 
-cipher = Fernet(state_key.encode())
 
 GRANT_TYPE = "authorization_code"
 
@@ -44,19 +40,13 @@ def get_access_token(code: str) -> str:
         "redirect_uri": google_redirect_url,
         "grant_type": GRANT_TYPE,
     }
-    token_response = httpx.post(google_token_url, data=request_body)
-    token_response_body = token_response.json()
+    token_response_body = get_token_response(google_token_url, request_body)
     access_token = token_response_body.get("access_token")
+    print("token_response_body:", token_response_body)
     return access_token
 
 
-def get_user_info(access_token: str) -> dict:
-    user_info_response = httpx.get(
-        google_user_info_url, headers={"Authorization": f"Bearer {access_token}"}
-    )
-    return user_info_response.json()
-
-
+# TODO: Create a pydantic model for user_info sent by google
 def get_google_id(user_info: dict) -> str:
     return user_info["id"]
 
