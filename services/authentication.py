@@ -29,7 +29,7 @@ def security(
 def create_jwt(user_id: int) -> str:
     header = create_jwt_header()
     payload = json.dumps(
-        {"sub": user_id, "exp": (datetime.now() + timedelta(hours=24)).timestamp()}
+        {"sub": user_id, "exp": (datetime.now() + timedelta(hours=1)).timestamp()}
     )
     encoded_header, encoded_payload = (
         base64url_encode(header.encode("utf-8")),
@@ -49,6 +49,8 @@ def verify_jwt(jwt: str) -> int | None:
         return
     padded_payload = pad_payload(encoded_payload)
     decoded_payload = json.loads(base64.urlsafe_b64decode(padded_payload))
+    # TODO: Instead of sending 401,using Refresh Token get a new Access Token
+    # and then reissue JWT
     if get_expiry_time(decoded_payload) < datetime.now().timestamp():
         return
     return get_user(decoded_payload)
