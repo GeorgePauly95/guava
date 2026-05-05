@@ -11,7 +11,7 @@ from services import (
 from schemas import (
     Message,
 )
-from services.oauth import encrypt_state, get_redirect_url
+from services.google_oauth import encrypt_state, get_redirect_url
 import json
 import asyncio
 

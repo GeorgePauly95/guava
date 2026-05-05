@@ -4,7 +4,7 @@ from typing import Annotated
 import json
 import base64
 from datetime import datetime, timedelta
-from .utils import (
+from utils import (
     create_jwt_header,
     create_signature,
     base64url_encode,
