@@ -6,3 +6,4 @@ from .workouts import (
 )
 from .users import Username
 from .location import Message
+from .data import Data
