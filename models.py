@@ -1,8 +1,9 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy.dialects.postgresql import TIMESTAMP, JSONB
 from sqlalchemy import Integer, Identity, text, func, ForeignKey
 from datetime import datetime
 from engine import engine
+import json
 
 
 def manage_connection(model_function):
@@ -248,3 +249,24 @@ class Users(Base):
             {"username": username, "google_id": google_id},
         ).fetchone()
         return new_user._mapping["id"]
+
+
+class FitnessData(Base):
+    __tablename__ = "data"
+    id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    deleted_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True
+    )
+    data: Mapped[json] = mapped_column(JSONB, nullable=False)
+
+    @classmethod
+    @manage_connection
+    def ingest_data(cls, connection, data):
+        print(f"fitness data: {data}")
+        connection.execute()
+        pass

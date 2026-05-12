@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, Request, APIRouter
+from fastapi import FastAPI, WebSocket, Request
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from routers import users, workouts
@@ -8,10 +8,9 @@ from services import (
     handle_google_oauth,
     google_oauth_url,
 )
-from schemas import (
-    Message,
-)
+from schemas import Message, Data
 from services.google_oauth import encrypt_state, get_redirect_url
+from models import FitnessData
 import json
 import asyncio
 
@@ -31,6 +30,26 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     for error in exc.errors():
         message += f"\nField: {error['loc']}\nError: {error['msg']}\nRequest body sent: {request_body}"
     return PlainTextResponse(message, status_code=400)
+
+
+@app.post("/api/data", summary="ingest all data")
+async def create_data(data: Data):
+    """
+    Any fitness data in JSON format can be sent.
+    The top level fields should be:
+    - **user**
+    - **data**
+
+    The user field should be an object. The object should could contain the following mandatory field:
+    - **email**
+
+    Any other user info can also be sent in other fields
+    with the following types:
+    - **str**
+    - **int**
+    - **float**
+    """
+    FitnessData.ingest_data(data)
 
 
 @app.get("/api/v1/login")
