@@ -3,4 +3,4 @@ from .metrics import calculate_time
 from .controllers import status_code_map
 from .jwt import create_jwt_header, get_expiry_time, get_user, pad_payload
 from .base64_encoding import base64url_encode
-from .cipher import create_signature
+from .cipher import cipher, create_signature

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from schemas import Username
-from models import Users
+from db import Users
 
 user = APIRouter(prefix="/users", tags=["users"])
 

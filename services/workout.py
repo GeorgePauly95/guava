@@ -1,4 +1,4 @@
-from models import PauseAndResumeLogs, Workouts
+from db import PauseAndResumeLogs, Workouts
 
 
 def check_log_conflict(log, time):

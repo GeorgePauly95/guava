@@ -10,7 +10,7 @@ from services import (
 )
 from schemas import Message, Data
 from services.google_oauth import encrypt_state, get_redirect_url
-from models import FitnessData
+from db import FitnessData
 import json
 import asyncio
 
@@ -49,7 +49,8 @@ async def create_data(data: Data):
     - **int**
     - **float**
     """
-    FitnessData.ingest_data(data)
+    data = data.model_dump_json()
+    return PlainTextResponse(FitnessData.ingest_data(data), status_code=201)
 
 
 @app.get("/api/v1/login")

@@ -1,6 +1,6 @@
 import asyncio
 import json
-from models import Workouts, Locations
+from db import Workouts, Locations
 from utils import calculate_time
 from haversine import haversine
 

@@ -6,7 +6,7 @@ from schemas import (
     WorkoutModifyRequest,
     WorkoutModifyResponse,
 )
-from models import Workouts
+from db import Workouts
 from typing import Annotated
 from services import security, route_modify_workout
 from utils import status_code_map

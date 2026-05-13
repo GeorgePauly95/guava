@@ -1,8 +1,8 @@
 import os
 from datetime import datetime
 from .authentication import create_jwt
-from utils import get_user_info, get_token_response
-from models import Users
+from utils import cipher, get_user_info, get_token_response
+from db import Users
 
 google_client_id = os.getenv("GOOGLE_CLIENT_ID")
 google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")

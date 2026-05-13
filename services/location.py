@@ -1,5 +1,5 @@
 from datetime import datetime
-from models import Locations, Workouts
+from db import Locations, Workouts
 
 
 def store_location(location):

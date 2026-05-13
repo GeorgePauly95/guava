@@ -1,7 +1,10 @@
 import os
+from dotenv import load_dotenv
 import hmac
 import hashlib
 from cryptography.fernet import Fernet
+
+load_dotenv()
 
 state_key = os.getenv("STATE_KEY")
 
