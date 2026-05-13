@@ -1,4 +1,11 @@
-from fastapi import FastAPI, WebSocket, Request
+from fastapi import (
+    FastAPI,
+    Request,
+    WebSocket,
+    WebSocketException,
+    WebSocketDisconnect,
+    status,
+)
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from routers import users, workouts
@@ -7,14 +14,26 @@ from services import (
     update_metrics,
     handle_google_oauth,
     google_oauth_url,
+    encrypt_state,
+    get_redirect_url,
 )
 from schemas import Message, Data
-from services.google_oauth import encrypt_state, get_redirect_url
+from services.authentication import verify_jwt
+from utils import connection_manager
 from db import FitnessData
+from contextlib import asynccontextmanager
 import json
 import asyncio
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(update_metrics(connection_manager))
+    yield
+    task.cancel()
+
+
+app = FastAPI(lifespan=lifespan)
 app.include_router(workouts.workout, prefix="/api")
 app.include_router(users.user, prefix="/api")
 
@@ -40,7 +59,8 @@ async def create_data(data: Data):
     - **user**
     - **data**
 
-    The user field should be an object. The object should could contain the following mandatory field:
+    The user field should be an object.
+    The object should could contain the following mandatory field:
     - **email**
 
     Any other user info can also be sent in other fields
@@ -78,22 +98,22 @@ async def google_auth(code: str, state: str):
 
 
 @app.websocket("/ws")
-async def handle_ws_messages(websocket: WebSocket):
-    await websocket.accept()
+async def handle_ws_messages(websocket: WebSocket, token: str):
+    user_id = verify_jwt(token)
+    if not user_id:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
-    async def receive_locations():
+    await connection_manager.create_connection(user_id, websocket)
+    try:
         while True:
             try:
                 message = json.loads(await websocket.receive_text())
                 Message(**message)
                 handle_message(message)
-            except Exception as e:
-                print(e)
+            except WebSocketDisconnect:
+                print(f"Client: {user_id} disconnected")
                 break
-
-    # TODO: create this task in the global scope.
-    # update metrics can be called for all clients instead of being
-    # called for each client separately.
-    task = asyncio.create_task(update_metrics(websocket))
-    await receive_locations()
-    task.cancel()
+            except Exception as e:
+                print("Error Message:\n", e)
+    finally:
+        connection_manager.remove_connection(user_id)

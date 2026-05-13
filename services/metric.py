@@ -3,6 +3,7 @@ import json
 from db import Workouts, Locations
 from utils import calculate_time
 from haversine import haversine
+from db import Workouts, PauseAndResumeLogs
 
 
 def calculate_distance(locations):
@@ -53,13 +54,18 @@ async def get_metrics(workout_id: int):
     return calculate_metrics(validated_locations)
 
 
-async def update_metrics(websocket):
+async def update_metrics(connection_manager):
     while True:
         await asyncio.sleep(5)
-        workout_ids = Workouts.get_active_workouts()
-        if workout_ids is not None:
-            for workout_id in workout_ids:
+        print("active connections:", connection_manager.active_connections)
+        try:
+            for user_id, websocket in connection_manager.active_connections.items():
+                workout_id = Workouts.get_active_workouts_for_user(user_id)
+                if workout_id is None:
+                    continue
                 metrics = await get_metrics(workout_id)
-                if metrics is not None:
-                    await websocket.send_text(json.dumps(metrics))
-                print(f"Workout with id: {workout_id} has no location datapoints yet.")
+                if metrics is None:
+                    continue
+                await websocket.send_text(json.dumps(metrics))
+        except Exception as e:
+            print("Error: ", e)
