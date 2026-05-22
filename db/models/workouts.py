@@ -1,6 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import TIMESTAMP
-from sqlalchemy import Integer, Identity, text, func, ForeignKey
+from sqlalchemy import Integer, Identity, text, func, ForeignKey, bindparam
 from datetime import datetime
 from ..connection import manage_connection
 
@@ -99,3 +99,14 @@ class Workouts(Base):
         workouts = [workout._mapping for workout in workouts]
         workout_ids = [workout["id"] for workout in workouts]
         return workout_ids[0]
+
+    @classmethod
+    @manage_connection
+    def get_active_workouts_for_users(cls, connection, user_ids):
+        sql = text(
+            "SELECT user_id, id FROM workout WHERE stopped_at IS NULL AND user_id IN :user_ids"
+        )
+        sql = sql.bindparams(bindparam("user_ids", expanding=True))
+        workouts = connection.execute(sql, {"user_ids": user_ids})
+        workouts = [workout._mapping for workout in workouts]
+        return workouts
