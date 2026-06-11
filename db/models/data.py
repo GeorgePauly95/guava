@@ -10,6 +10,7 @@ class Base(DeclarativeBase):
     pass
 
 
+# Add user_id column to the table.
 class FitnessData(Base):
     __tablename__ = "data"
     id: Mapped[int] = mapped_column(Integer, Identity(always=True), primary_key=True)
