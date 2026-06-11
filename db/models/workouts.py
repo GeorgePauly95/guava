@@ -86,27 +86,3 @@ class Workouts(Base):
         workouts = [workout._mapping for workout in workouts]
         workout_ids = [workout["id"] for workout in workouts]
         return workout_ids
-
-    @classmethod
-    @manage_connection
-    def get_active_workouts_for_user(cls, connection, user_id):
-        workouts = connection.execute(
-            text(
-                "SELECT id FROM workout WHERE stopped_at IS NULL AND user_id = :user_id"
-            ),
-            {"user_id": user_id},
-        )
-        workouts = [workout._mapping for workout in workouts]
-        workout_ids = [workout["id"] for workout in workouts]
-        return workout_ids[0]
-
-    @classmethod
-    @manage_connection
-    def get_active_workouts_for_users(cls, connection, user_ids):
-        sql = text(
-            "SELECT user_id, id FROM workout WHERE stopped_at IS NULL AND user_id IN :user_ids"
-        )
-        sql = sql.bindparams(bindparam("user_ids", expanding=True))
-        workouts = connection.execute(sql, {"user_ids": user_ids})
-        workouts = [workout._mapping for workout in workouts]
-        return workouts
