@@ -46,7 +46,9 @@ async def modify_workout(
     workoutModifyRequest: WorkoutModifyRequest,
 ):
     status, time = workoutModifyRequest.status, workoutModifyRequest.modified_at
-    response_body = route_modify_workout(user_id, workout_id, status, time)
+    response_body = route_modify_workout(workout_id, status, time)
+    print("Response Body:", response_body)
     return JSONResponse(
-        status_code=status_code_map(response_body["status"]), content=response_body
+        status_code=status_code_map(response_body["outcome_status"]),
+        content=response_body,
     )
