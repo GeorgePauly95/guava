@@ -97,6 +97,7 @@ async def google_auth(code: str, state: str):
     return response
 
 
+# TODO: Use HTTP header and not query parameter to get JWT.
 @app.websocket("/ws")
 async def handle_ws_messages(websocket: WebSocket, token: str):
     user_id = verify_jwt(token)
