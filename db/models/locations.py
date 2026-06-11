@@ -1,6 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import TIMESTAMP
-from sqlalchemy import Integer, Identity, text, func, ForeignKey
+from sqlalchemy import Integer, Identity, text, func, ForeignKey, bindparam
 from datetime import datetime
 from ..connection import manage_connection
 
@@ -55,14 +55,13 @@ class Locations(Base):
 
     @classmethod
     @manage_connection
-    def get_workout_locations(cls, connection, workout_id):
-        locations = connection.execute(
-            text(
-                """SELECT latitude, longitude, time, workout_id
-                FROM location WHERE workout_id=:workout_id
+    def get_workout_locations(cls, connection, user_ids):
+        sql = text(
+            """SELECT latitude, longitude, time, workout_id, user_id
+                FROM location ON workout.id = location.workout_id WHERE user_id IN :user_ids AND workout.stopped_at IS NULL
                 ORDER BY time"""
-            ),
-            {"workout_id": workout_id},
         )
+        sql = sql.bindparams(bindparam("user_ids", expanding=True))
+        locations = connection.execute(sql, {"user_ids": user_ids})
         locations = [location._mapping for location in locations]
         return locations
