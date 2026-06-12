@@ -3,27 +3,16 @@ from sqlalchemy import text, bindparam
 
 
 def get_metrics(user_ids):
-    print("user_ids", user_ids)
     sql = text("""
-    WITH user_ids AS (
-    SELECT
-        id AS user_id
-    FROM
-        "user"
-    WHERE id in :user_ids
-    ),
-    user_workouts AS (
+    WITH user_workouts AS (
     SELECT
         id AS workout_id,
-        user_ids.user_id,
+        workout.user_id,
         started_at AS START,
         stopped_at AS stop
     FROM
         workout
-    INNER JOIN
-        user_ids
-    ON
-        user_ids.user_id = workout.user_id),
+    WHERE user_id in :user_ids),
     workout_logs AS (
     SELECT
         workout.id AS workout_id,
