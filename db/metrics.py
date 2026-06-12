@@ -3,6 +3,7 @@ from sqlalchemy import text, bindparam
 
 
 def get_metrics(user_ids):
+    print("user_ids", user_ids)
     sql = text("""
     WITH user_ids AS (
     SELECT
@@ -83,14 +84,26 @@ def get_metrics(user_ids):
     workout_metrics AS (
     SELECT
         workout_id,
-        haversine_distance(latitude_1, longitude_1, latitude_2, longitude_2) AS distance,
-        EXTRACT(EPOCH FROM (time_1 - time_2)) AS time
+        SUM(haversine_distance(latitude_1, longitude_1, latitude_2, longitude_2)) AS distance,
+        CAST(EXTRACT(EPOCH FROM (MAX(time_1) - MIN(time_1))) AS float) AS time
     FROM
         workout_locations_pairs
+    GROUP BY workout_id
+    ),
+    user_metrics AS (
+    SELECT
+        user_workouts.user_id,
+        workout_metrics.workout_id,
+        workout_metrics.distance,
+        workout_metrics.time
+    FROM 
+        workout_metrics
+    INNER JOIN user_workouts ON
+        workout_metrics.workout_id = user_workouts.workout_id
     )
-    SELECT SUM(distance) AS distance FROM workout_metrics;""")
+    SELECT * FROM user_metrics;""")
     sql = sql.bindparams(bindparam("user_ids", expanding=True))
     with engine.begin() as connection:
         metrics = connection.execute(sql, {"user_ids": user_ids})
-        metrics = [metric._mapping for metric in metrics]
+        metrics = [dict(metric._mapping) for metric in metrics]
         return metrics
