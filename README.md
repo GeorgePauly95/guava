@@ -1,55 +1,105 @@
-Guava API contracts
+# Guava API
 
-HTTP Endpoints
+Guava is a backend service for a real-time fitness and workout tracking application. It provides RESTful APIs for managing workouts, ingesting fitness data, and a WebSocket interface for streaming real-time location and returning live metrics.
 
-1. Start a workout
+## Features
 
-Description: This API creates a workout entry and returns its id. 
+- **Workout Management**: Start and stop workout sessions.
+- **Real-time Tracking**: WebSocket integration for streaming live geolocation data and receiving calculated metrics (distance, elapsed time).
+- **Generic Data Ingestion**: Flexible JSON endpoint for ingesting various fitness data metrics.
+- **Authentication**: Secure Google OAuth integration and JWT-based session management.
 
-Request: 
-Endpoint: /api/workouts
+## Tech Stack
 
-Successful Response: {"id": 1}
+- **Framework**: FastAPI (Python)
+- **Database**: SQL Database with Alembic for migrations
+- **Real-time**: WebSockets
 
-2. Stop a workout
+## Getting Started
 
-Description: This API stops the workout.
+### Prerequisites
 
-Request:
-Endpoint: /api/workouts/{workout_id}/status
+- Python 3.9+
+- A running SQL database (configured via `.env`)
+- Google OAuth credentials
 
-Successful Response: null
+### Installation
 
+1. Clone the repository and navigate to the project directory:
+   ```bash
+   git clone <repo-url>
+   cd guava
+   ```
 
-Websocket Endpoint
+2. Create a virtual environment and install dependencies:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
-Endpoint: /ws
+3. Set up the environment variables:
+   Create a `.env` file in the root directory and configure your database URI and Google OAuth credentials.
 
-1. location
+4. Run database migrations:
+   ```bash
+   alembic upgrade head
+   ```
 
-Description: location information about the client, sent by the client to the server.
+### Running the Server
 
-Message:
+Start the development server using uvicorn:
+```bash
+uvicorn main:app --reload
+```
+The API will be available at `http://localhost:8000`. 
+FastAPI automatically generates interactive API documentation. You can view it at:
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
+
+## API Documentation
+
+### HTTP Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/workouts` | `POST` | Creates a new workout session and returns its ID. (Response: `{"id": 1}`) |
+| `/api/workouts/{workout_id}/status` | `POST` / `PUT` | Updates the status of a workout (e.g., to stop the workout). |
+| `/api/data` | `POST` | Ingest arbitrary fitness data in JSON format for a user. |
+| `/api/v1/login` | `GET` | Initiates the Google OAuth login flow. |
+
+### WebSocket Connections
+
+**Endpoint:** `/ws`
+
+Requires a valid JWT token passed for authentication. Used for bidirectional real-time streaming during a workout.
+
+#### Client to Server: Location Updates
+Send location information to the server:
+```json
 {
-"type": "location"
-"payload": {
-  "latitude": -12.10,
-  "longitude": 79.01,
-  "timestamp": "2026-02-19T08:53:28Z",
-  "workout_id": 1
+  "type": "location",
+  "payload": {
+    "latitude": -12.10,
+    "longitude": 79.01,
+    "timestamp": "2026-02-19T08:53:28Z",
+    "workout_id": 1
   }
 }
+```
 
-2. metrics
-
-Description: workout metrics sent by the server to the client.
-
-Message: 
+#### Server to Client: Live Metrics
+The server will stream back calculated workout metrics:
+```json
 {
-"type": "metrics",
-"payload": {
-  "distance": 2;
-  "time": 2m36s 
+  "type": "metrics",
+  "payload": {
+    "distance": 2,
+    "time": "2m36s" 
+  }
 }
-}
+```
 
+## Contributing
+
+Please adhere to the coding standards and ensure tests pass before submitting a pull request.
