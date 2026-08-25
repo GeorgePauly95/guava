@@ -10,7 +10,6 @@ from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from routers import users, workouts
 from services import (
-    handle_message,
     update_metrics,
     handle_google_oauth,
     google_oauth_url,
@@ -21,7 +20,7 @@ from schemas import Message, Data
 from services.authentication import verify_jwt
 from utils import connection_manager
 from db import FitnessData
-from message_queue import q
+from services.queue import dispatch_message
 from contextlib import asynccontextmanager
 import json
 import asyncio
@@ -112,8 +111,7 @@ async def handle_ws_messages(websocket: WebSocket, token: str):
                 message = json.loads(await websocket.receive_text())
                 print("MESSAGE:\n", message)
                 Message(**message)
-                q.enqueue(handle_message, message)
-                handle_message(message)
+                dispatch_message(message)
             except WebSocketDisconnect:
                 print(f"Client: {user_id} disconnected")
                 break
